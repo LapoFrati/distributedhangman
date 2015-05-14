@@ -2,10 +2,11 @@ package Registry;
 
 public class UserInfo {
 	private boolean loggedIn;
-	private String encryptedPassword;
+	private String encryptedPassword, host;
 	
-	public UserInfo(String encryptedPassword){
+	public UserInfo(String encryptedPassword, String host){
 		this.loggedIn = false;
+		this.host = host;
 		this.encryptedPassword = encryptedPassword;
 	}
 	
@@ -23,5 +24,13 @@ public class UserInfo {
 	
 	public String getEncryptedPassword(){
 		return this.encryptedPassword;
+	}
+	
+	public void setHost(String newHost){
+		this.host = newHost;
+	}
+	
+	public String getHost(){
+		return this.host;
 	}
 }
