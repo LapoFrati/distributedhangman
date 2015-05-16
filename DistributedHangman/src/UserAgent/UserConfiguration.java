@@ -9,10 +9,10 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-public class RegistryConfiguration {
+public class UserConfiguration {
 	JSONObject config;
 	
-	public RegistryConfiguration( String file) throws IOException{
+	public UserConfiguration( String file) throws IOException{
 		String json;
 		try (BufferedReader br = new BufferedReader(new FileReader(file))) {
 		    if ((json = br.readLine()) == null) 
@@ -29,7 +29,6 @@ public class RegistryConfiguration {
 		}
 	}
 	
-	String serverIP, serverName, serverPort;
 	public String getServerIp(){
 		String serverIP;
 		
@@ -39,19 +38,28 @@ public class RegistryConfiguration {
 		return serverIP;
 	}
 	
-	public String getServerName(){
-		String serverName;
+	public String getRegistryName(){
+		String registryName;
 		
-		if((serverName = (String)config.get("REGISTRY_NAME")) == null)
-			throw new ConfigurationException("Couldn't find server's name.");
+		if((registryName = (String)config.get("REGISTRY_NAME")) == null)
+			throw new ConfigurationException("Couldn't find registry's name.");
 		
-		return serverName;
+		return registryName;
+	}
+	
+	public String getRegistryPort(){
+		String registryPort;
+		
+		if((registryPort = (String)config.get("REGISTRY_PORT")) == null)
+			throw new ConfigurationException("Couldn't find registry's port.");
+		
+		return registryPort;
 	}
 	
 	public String getServerPort(){
 		String serverPort;
 		
-		if((serverPort = (String)config.get("REGISTRY_PORT")) == null)
+		if((serverPort = (String)config.get("SERVER_PORT")) == null)
 			throw new ConfigurationException("Couldn't find server's port.");
 		
 		return serverPort;
