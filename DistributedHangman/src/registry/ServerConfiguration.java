@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import messages.JSONCodes;
+
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -38,40 +40,12 @@ public class ServerConfiguration {
 		}
 	}
 	
-	public String getServerIp(){
-		String serverIP;
+	public String getJsonField(String field){
+		String requestedField;
 		
-		if((serverIP = (String)config.get("SERVER_IP")) == null)
-			throw new ConfigurationException("Couldn't find server's ip.");
-		
-		return serverIP;
-	}
-	
-	public String getRegistryName(){
-		String registryName;
-		
-		if((registryName = (String)config.get("REGISTRY_NAME")) == null)
-			throw new ConfigurationException("Couldn't find registry's name.");
-		
-		return registryName;
-	}
-	
-	public String getRegistryPort(){
-		String registryPort;
-		
-		if((registryPort = (String)config.get("REGISTRY_PORT")) == null)
-			throw new ConfigurationException("Couldn't find registry's port.");
-		
-		return registryPort;
-	}
-	
-	public String getServerPort(){
-		String serverPort;
-		
-		if((serverPort = (String)config.get("SERVER_PORT")) == null)
-			throw new ConfigurationException("Couldn't find server's port.");
-		
-		return serverPort;
+		if((requestedField = (String)config.get(field)) == null)
+			throw new ConfigurationException("Couldn't find server's "+field);
+		return requestedField;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -117,23 +91,6 @@ public class ServerConfiguration {
 		output.close();
 		
 	}
-	
-	/*
-	@SuppressWarnings("unchecked")
-	public List<InetAddress> getMulticastAddresses() throws UnknownHostException{
-		List<InetAddress> multicastAddressesConverted = Collections.synchronizedList(new LinkedList<InetAddress>());
-		List<String> multicastAddressesString;
-		
-		if((multicastAddressesString = (LinkedList<String>)config.get("MULTICAST_ADDRESSES")) == null)
-			throw new ConfigurationException("Couldn't find the list of multicastAddresses.");
-		
-		for(String addr : multicastAddressesString){
-			multicastAddressesConverted.add(InetAddress.getByName(addr));
-		}
-		
-		return multicastAddressesConverted;
-	}
-	*/
 	
 	public int getMaxNumberOfGames(){
 		String maxNumberOfGames;

@@ -9,6 +9,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import registry.ConfigurationException;
+
 public class UserConfiguration {
 	JSONObject config;
 	
@@ -29,39 +31,11 @@ public class UserConfiguration {
 		}
 	}
 	
-	public String getServerIp(){
-		String serverIP;
+	public String getJsonField(String field){
+		String requestedField;
 		
-		if((serverIP = (String)config.get("SERVER_IP")) == null)
-			throw new ConfigurationException("Couldn't find server's ip.");
-		
-		return serverIP;
-	}
-	
-	public String getRegistryName(){
-		String registryName;
-		
-		if((registryName = (String)config.get("REGISTRY_NAME")) == null)
-			throw new ConfigurationException("Couldn't find registry's name.");
-		
-		return registryName;
-	}
-	
-	public String getRegistryPort(){
-		String registryPort;
-		
-		if((registryPort = (String)config.get("REGISTRY_PORT")) == null)
-			throw new ConfigurationException("Couldn't find registry's port.");
-		
-		return registryPort;
-	}
-	
-	public String getServerPort(){
-		String serverPort;
-		
-		if((serverPort = (String)config.get("SERVER_PORT")) == null)
-			throw new ConfigurationException("Couldn't find server's port.");
-		
-		return serverPort;
+		if((requestedField = (String)config.get(field)) == null)
+			throw new ConfigurationException("Couldn't find server's "+field);
+		return requestedField;
 	}
 }
