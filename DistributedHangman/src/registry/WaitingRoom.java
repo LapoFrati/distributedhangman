@@ -18,4 +18,8 @@ public class WaitingRoom {
 	public String getRoomInfo(){
 		return roomName+": "+currentPlayers+"/"+requiredPlayers;
 	}
+	
+	public String getRoomPassword(){
+		return this.password;
+	}
 }
