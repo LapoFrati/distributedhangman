@@ -1,4 +1,4 @@
-package registry;
+package messages;
 
 public class ConfigurationException extends RuntimeException{
 	
