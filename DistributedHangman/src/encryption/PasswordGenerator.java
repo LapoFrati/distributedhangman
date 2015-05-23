@@ -1,4 +1,4 @@
-package registry;
+package encryption;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
