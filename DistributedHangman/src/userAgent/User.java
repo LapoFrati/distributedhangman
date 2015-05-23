@@ -21,6 +21,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 import messages.JSONCodes;
+import messages.ReadConfigurationFile;
 import messages.TCPmsg;
 
 import org.json.simple.JSONObject;
@@ -38,13 +39,14 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 	public static void main(String[] args) throws IOException, NotBoundException, ClassNotFoundException{
 
 		Scanner scanner = new Scanner(System.in);
-		UserConfiguration config = new UserConfiguration("userConfig.json");
-		String 	serverIP     = config.getServerIp(), 
-				registryName = config.getRegistryName(),
-				registryPort = config.getRegistryPort(),
-				serverPort   = config.getServerPort();
-		boolean logout = false;
+		ReadConfigurationFile config = new ReadConfigurationFile("userConfig.json");
+		String 	serverIP     = config.getJsonField(JSONCodes.serverIP), 
+				registryName = config.getJsonField(JSONCodes.registryName),
+				registryPort = config.getJsonField(JSONCodes.registryPort),
+				serverPort   = config.getJsonField(JSONCodes.serverPort);
+
 		BufferedReader stdIn = new BufferedReader( new InputStreamReader(System.in) );
+		
 		// Use RMI to try to login
 		LoginIF reg = (LoginIF) Naming.lookup("rmi://"+serverIP+":"+registryPort+"/"+registryName);
 		
@@ -77,10 +79,11 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 	        	
 	        	switch(role){
 	        	case "m": 	messageToServer = new JSONObject();
-	        				//TODO: read fields from input
+	        				//TODO: number of guessers
 	        				messageToServer.put(JSONCodes.role, JSONCodes.master);
 			        		messageToServer.put(JSONCodes.roomName, userName);
 			        		messageToServer.put(JSONCodes.numberOfGuessers, 10);
+			        		messageToServer.put(JSONCodes.closingGame, false);
 			        		System.out.println("Sending info");
 			        		out.println(messageToServer);
 			        		System.out.println("Waiting for reply");
@@ -110,9 +113,7 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 			        		*/
 	        				break;
 	        	}
-        
-        	
-        /*	
+	        	
         	try {
         		 System.out.println("Logging out "+userName);
      			reg.logOut(userName);
@@ -120,14 +121,12 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
      			// TODO Auto-generated catch block
      			e.printStackTrace();
      		}
-        */	
+        
             } catch (UnknownHostException e) {
-                System.err.println("Don't know about host " + InetAddress.getByName(serverIP));
-                System.exit(1);
+                System.out.println("Don't know about host " + InetAddress.getByName(serverIP));
             } catch (IOException e) {
-                System.err.println("Couldn't get I/O for the connection to " +
+                System.out.println("Couldn't get I/O for the connection to " +
                 		InetAddress.getByName(serverIP));
-                System.exit(1);
             }
            
 		scanner.close();
@@ -190,8 +189,13 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 	 * @param msg message to be displayed
 	 * @throws RemoteException
 	 */
-	@Override
 	public void notifyUser(String msg) throws RemoteException {
 		System.out.println(msg);
+	}
+
+	@Override
+	public void closeCallback() throws RemoteException {
+		//Naming.unbind("name");
+		UnicastRemoteObject.unexportObject(this, true);
 	}
 }
