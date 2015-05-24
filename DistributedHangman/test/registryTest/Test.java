@@ -1,10 +1,15 @@
 package registryTest;
 
+import java.math.BigInteger;
+import java.security.SecureRandom;
+
 import registry.MulticastAddrGenerator;
 
 public class Test {
 	
 	public static void main(String[] args) {
+		SecureRandom random = new SecureRandom();
+		
 		long baseMulticastAddr = ipToLong("224.0.0.0");
 		System.out.println(baseMulticastAddr);
 		
@@ -13,10 +18,51 @@ public class Test {
 		
 		MulticastAddrGenerator testGenerator = new MulticastAddrGenerator("224.0.0.0", "224.0.0.4");
 		
-		for(int i = 0; i < 10; i++){
+		/*for(int i = 0; i < 10; i++){
 			System.out.println(testGenerator.getMulticastAddress());
 		}
+		*/
+		
+		StaticTest test1 = new StaticTest();
+		StaticTest test2 = new StaticTest();
+		
+		/*System.out.println(nextPassword(random));
+		System.out.println(nextPassword(random));
+		System.out.println(nextPassword(random));
+		*/
 	}
+	
+	public static class StaticTest{
+		public static PrintingConstructor obj1 = new PrintingConstructor();
+		public static Object obj;
+		
+		public StaticTest(){
+			System.out.println("inside staticTest constructor");
+			if(obj == null){
+				System.out.println("building obj");
+				obj = new Object();
+			}else
+				System.out.println("skip rebuilding obj");
+		}
+	}
+	
+	public static class PrintingConstructor{
+		public PrintingConstructor(){
+			System.out.println("inside printinc constructor");
+		}
+	}
+	
+	
+	
+	
+		/* This works by choosing 130 bits from a cryptographically secure random bit generator, 
+		 * and encoding them in base-32. 128 bits is considered to be cryptographically strong, but
+		 *  each digit in a base 32 number can encode 5 bits, so 128 is rounded up to the next 
+		 *  multiple of 5. This encoding is compact and efficient, with 5 random bits per character. 
+		 */
+		public static  String nextPassword(SecureRandom random) {
+			return new BigInteger(130, random).toString(32);
+		}
 	
 	public static long ipToLong(String ipAddress) {
         long result = 0;
