@@ -3,7 +3,7 @@ package registry;
 import java.io.IOException;
 import java.net.Socket;
 
-import messages.TCPmsg;
+import messages.JSONCodes;
 
 public class ConnectionTimeoutThread extends Thread {
 	Socket socketToBeClosed;
@@ -18,11 +18,10 @@ public class ConnectionTimeoutThread extends Thread {
 	
 	@Override
 	public void run() {
-		byte[] closingMessage = TCPmsg.connectionClosed.getBytes();
-		// TODO: analyze interaction between threads to avoid inconsistencies
+		byte[] closingMessage = JSONCodes.connectionClosed.getBytes();
 		while(alarmActivated){
 			try {
-					Thread.sleep(alarmTime - currentTime);
+				Thread.sleep(alarmTime - currentTime);
 				alarmActivated = false;
 			} catch (InterruptedException e) {
 				if(alarmActivated){
