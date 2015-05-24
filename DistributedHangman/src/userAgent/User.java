@@ -14,7 +14,6 @@ import java.rmi.server.ServerNotActiveException;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Scanner;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -22,9 +21,9 @@ import javax.crypto.NoSuchPaddingException;
 
 import messages.JSONCodes;
 import messages.ReadConfigurationFile;
-import messages.TCPmsg;
-
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import registry.UserNotificationIF;
 import encryption.EncryptionUtil;
@@ -36,15 +35,15 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 
 	protected User() throws RemoteException {}
 
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, NotBoundException, ClassNotFoundException{
 
-		Scanner scanner = new Scanner(System.in);
 		ReadConfigurationFile config = new ReadConfigurationFile("userConfig.json");
 		String 	serverIP     = config.getJsonField(JSONCodes.serverIP), 
 				registryName = config.getJsonField(JSONCodes.registryName),
 				registryPort = config.getJsonField(JSONCodes.registryPort),
 				serverPort   = config.getJsonField(JSONCodes.serverPort);
-
+		
 		BufferedReader stdIn = new BufferedReader( new InputStreamReader(System.in) );
 		
 		// Use RMI to try to login
@@ -69,53 +68,97 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
                         new InputStreamReader(serverSocket.getInputStream()));
             ){
         		
-	        	String role,messageFromServer;
+	        	String role;
 	        	do{
 	        		System.out.println("Choose role: ");
-	        		role = scanner.nextLine();
+	        		role = stdIn.readLine();
 	        	}while(!role.matches("m|g"));
 	        	
-	        	JSONObject messageToServer;
+	        	JSONObject messageToServer, messageFromServer = null;
 	        	
 	        	switch(role){
-	        	case "m": 	messageToServer = new JSONObject();
-	        				//TODO: number of guessers
+	        	case "m": {	messageToServer = new JSONObject();
+				        	int numberOfGuessers = 4;
+			        		boolean readNumber = true,
+			        				keepReading = true;
+			        		System.out.println("Required number of guesser: ");
+			        		while(readNumber){
+			        			try{
+			        			numberOfGuessers = Integer.valueOf(stdIn.readLine());
+			        			readNumber = false;
+			        			}catch (NumberFormatException e) {
+									System.out.println("Wrong number format.");
+								}
+			        		}
 	        				messageToServer.put(JSONCodes.role, JSONCodes.master);
 			        		messageToServer.put(JSONCodes.roomName, userName);
-			        		messageToServer.put(JSONCodes.numberOfGuessers, 10);
-			        		messageToServer.put(JSONCodes.closingGame, false);
+			        		messageToServer.put(JSONCodes.numberOfGuessers, numberOfGuessers);
+			        		
 			        		System.out.println("Sending info");
 			        		out.println(messageToServer);
 			        		System.out.println("Waiting for reply");
-			        		
-			        		while(!(messageFromServer = in.readLine()).equals(TCPmsg.connectionClosed)){
-			        			switch(messageFromServer){
-			        				case TCPmsg.ack: 	System.out.println("ACK received");
-			        									break; 
+			        		while(keepReading){
+				        		try {
+									messageFromServer = (JSONObject) new JSONParser().parse(in.readLine());
+								} catch (ParseException e) {
+									e.printStackTrace();
+								}
+			        			switch((String) messageFromServer.get(JSONCodes.message)){
+			        				case JSONCodes.waitingRoomsFull: 	System.out.println("Waiting to create a new room");
+			        													break;
+			        				case JSONCodes.newRoomCreated:		System.out.println("New room created. Waiting for guessers.");
+			        													break;
+			        				case JSONCodes.connectionClosed: 	keepReading = false;
+			        													System.out.println("Connection closed.");
+			        													break;
 			        			}
-			        		};
+			        		}
 			        		
-			        		System.out.println(TCPmsg.connectionClosed+" received");
-			        		
+			        		// password  = (String) messageFromServer.get(JSONCodes.password)
+			        		// multicast = password = (String) messageFromServer.get(JSONCodes.multicast) 
 			        		//Master master = new Master(out, in, userName);
 			        		//master.createGame();
 			        		break;
-			        		
-	        	case "g" :	//TODO: implement guesser protocol
-	        				/*
+	        			  }
+	        	case "g":{	Boolean keepReading = true;
 	        				messageToServer = new JSONObject();
-			        		messageToServer.put("ACTION", "BECOME_GUESSER");
-			        		
+			        		messageToServer.put(JSONCodes.role, JSONCodes.guesser);
+			        		messageToServer.put(JSONCodes.userName, userName);
 			        		out.println(messageToServer);
 			        		
-			        		Guesser guesser = new Guesser(out, in, userName);
-			        		guesser.searchForGame();
-			        		*/
+			        		System.out.println("Choose room to join: ");
+			        		messageToServer.put(JSONCodes.roomName, stdIn.readLine());
+			        		while(keepReading){
+			        			try {
+									messageFromServer = (JSONObject) new JSONParser().parse(in.readLine());
+								} catch (ParseException e) {
+									e.printStackTrace();
+								}
+			        			switch((String) messageFromServer.get(JSONCodes.message)){
+			        			
+			        				case JSONCodes.roomJoined: 			System.out.println("Joined selected room, please wait for game to start");
+			        													break;
+			        				case JSONCodes.connectionClosed:	System.out.println("Game is starting");
+			        													keepReading = false;
+			        													break;
+			        				case JSONCodes.roomClosed:			System.out.println("Room closed.");
+			        				case JSONCodes.guesserJoinError:	System.out.println("Choose room to join: ");
+					        											out.println(stdIn.readLine());
+					        											break;
+			        			}		
+			        		}
+			        		
+			        		// password  = (String) messageFromServer.get(JSONCodes.password)
+			        		// multicast = password = (String) messageFromServer.get(JSONCodes.multicast) 
+			        		//Guesser guesser = new Guesser(out, in, userName);
+			        		//guesser.searchForGame();
+			        		
 	        				break;
+	        			 }
 	        	}
 	        	
         	try {
-        		 System.out.println("Logging out "+userName);
+        		System.out.println("Logging out "+userName);
      			reg.logOut(userName);
      		} catch (ServerNotActiveException e) {
      			// TODO Auto-generated catch block
@@ -128,8 +171,6 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
                 System.out.println("Couldn't get I/O for the connection to " +
                 		InetAddress.getByName(serverIP));
             }
-           
-		scanner.close();
 	}
 	
 	/**

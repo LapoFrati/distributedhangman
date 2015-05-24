@@ -15,38 +15,43 @@ import java.rmi.server.UnicastRemoteObject;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.jasypt.util.password.BasicPasswordEncryptor;
-// import org.jasypt.util.text.BasicTextEncryptor;
 
-import encryption.EncryptionUtil;
 import userAgent.LoginIF;
+import encryption.EncryptionUtil;
+import encryption.PasswordGenerator;
 
 public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	
-	private static final long serialVersionUID = -5884938279869629334L;
-	private static BasicPasswordEncryptor passwordEncryptor;
-	//private static BasicTextEncryptor textEncryptor;
-	private static final String PUBLIC_KEY_FILE = "public.key", PRIVATE_KEY_FILE = "private.key";
-	private static PublicKey myPubKey;
-	private static PrivateKey myPrivKey;
-	protected static Map< String, UserInfo > users;
-	private static LinkedList< UserNotificationIF > loggedUsers = new LinkedList<UserNotificationIF>();
-	private static LinkedList< WaitingRoom > gamesAvailable = new LinkedList<WaitingRoom>();
-	private static final Object loggedUsersLock = new Object(), 
-								gamesAvailableLock = new Object(), 
-								usersLock = new Object(),
-								serializationLock = new Object();
-	private static int maxNumberOfGames, currentNumberOfGames = 0;
-
-	protected MyRegistry() throws FileNotFoundException, IOException, ClassNotFoundException {
+	private static final long 				serialVersionUID 	= -5884938279869629334L;
+	private static BasicPasswordEncryptor 	passwordEncryptor 	= new BasicPasswordEncryptor();
+	private static final String 			PUBLIC_KEY_FILE 	= "public.key", 
+											PRIVATE_KEY_FILE 	= "private.key";
+	
+	private static PublicKey 				myPubKey;
+	private static PrivateKey 				myPrivKey;
+	//TODO map is using a concurrentHashMap and synchronization -> redundant
+	private static HashMap< String, UserInfo > 		users;
+	private static LinkedList<UserNotificationIF> 	availableGuessers 		= new LinkedList<UserNotificationIF>();
+	private static LinkedList< WaitingRoom >		waitingRoomsAvailable 	= new LinkedList<WaitingRoom>();
+	private static MulticastAddrGenerator 			multicastAddrGenerator;
+	
+	private static final Object availableGuessersLock 			= new Object(), 
+								waitingRoomsAvailableLock 		= new Object(), 
+								usersLock 						= new Object(),
+								serializationLock 				= new Object(),
+								currentNumberOfWaitingRoomsLock = new Object();
+	
+	private static int 			maxNumberOfWaitingRooms, 
+								currentNumberOfWaitingRooms 	= 0;
+	
+	private static PasswordGenerator passwordGenerator 		= new PasswordGenerator();
+	
+	protected MyRegistry(int maxNumberOfWaitingRooms, String baseAddr, String maxAddr) throws FileNotFoundException, IOException, ClassNotFoundException {
 		super();
-		passwordEncryptor = new BasicPasswordEncryptor();
-		//textEncryptor = new BasicTextEncryptor();
 		if (!EncryptionUtil.areKeysPresent())
 			
 			try {
@@ -73,7 +78,11 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 			e.printStackTrace();
 		}
 	    inputStream.close();
-	    users = getRegisterdUserInfo();
+	    
+    	users = getRegisterdUserInfo();
+    	MyRegistry.maxNumberOfWaitingRooms = maxNumberOfWaitingRooms;
+    	multicastAddrGenerator = new MulticastAddrGenerator(baseAddr, maxAddr);
+	    
 	}
 
 	/**
@@ -108,24 +117,20 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		
 		synchronized (usersLock) {
 			userInfo = users.get(userName); // Fetch the user's info	
-		}
-		
-		
-		// Check if the passwords match using jasypt's utilities
-		if ( passwordEncryptor.checkPassword(password, userInfo.getEncryptedPassword()) ) {
-			userInfo.login();
-			userInfo.setHost(getClientHost());
-			userInfo.setCallback((UserNotificationIF)callback); // Needed to remove it from the loggedUsers on logout
-			
-			synchronized (loggedUsersLock) {
-				loggedUsers.add((UserNotificationIF) callback); // Needed for the RMI-callbacks that will notify the available rooms to the user
+			if(userInfo.isLoggedIn()){
+				result = false; // the user is already logged in.
+				((UserNotificationIF)callback).notifyUser("User already logged in!"); // Notify that the user is already logged in.
+			}else{
+				// Check if the passwords match using jasypt's utilities
+				if ( passwordEncryptor.checkPassword(password, userInfo.getEncryptedPassword()) ) {
+					userInfo.login();
+					userInfo.setCallback((UserNotificationIF)callback); // Needed to remove it from the loggedUsers on logout
+					System.out.println("User "+userName+" logged in");
+					((UserNotificationIF)callback).notifyUser("Login successful!"); // Notify to the user login's completion
+					notifySingleUserWaitingRooms((UserNotificationIF)callback);
+					result = true;
+				}
 			}
-			
-			System.out.println("User "+userName+" logged in");
-			((UserNotificationIF)callback).notifyUser("Login successful!"); // Notify to the user login's completion
-			notifySingleUserWaitingRooms((UserNotificationIF)callback);
-			result = true;
-			
 		}
 		
 		return result;
@@ -149,7 +154,6 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 			if( !users.containsKey(userName) ){
 				String password = EncryptionUtil.decrypt(text, myPrivKey); // The user's password is decrypted using the server's private key
 				UserInfo newUserInfo = new UserInfo(passwordEncryptor.encryptPassword(password));
-				newUserInfo.setHost(getClientHost());
 				users.put(userName, newUserInfo); // the user's password is digested using jasypt's utilities
 				System.out.println("Registerd new user: "+userName);
 				saveUsers(userName, newUserInfo.getEncryptedPassword());
@@ -170,24 +174,25 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	 * @throws RemoteException
 	 * @throws ServerNotActiveException
 	 */
-	public boolean logOut(String userName) throws RemoteException, ServerNotActiveException {
-		boolean result = false;
+	public void logOut(String userName) throws RemoteException, ServerNotActiveException {
 		UserInfo userInfo = null;
+		UserNotificationIF callback = null;
 		
 		synchronized (usersLock) {
 			userInfo = users.get(userName);
-		}
-		
-		if(userInfo.isLoggedIn() && (getClientHost()).equals(userInfo.getHost())){
 			userInfo.logout();
-			synchronized (loggedUsersLock) {
-				loggedUsers.remove(userInfo.getCallback());
-			}
+			callback = userInfo.getCallback();
 			System.out.println("User "+userName+" logged out.");
 			(userInfo.getCallback()).closeCallback();
-			result = true;
 		}
-		return result;
+		
+		synchronized (availableGuessersLock) {
+			availableGuessers.remove(callback);
+		}
+		
+		// Handle master leaving and room closure.
+		
+		//UnicastRemoteObject.unexportObject(this, true);
 	}
 
 	public PublicKey getPublicKey() throws RemoteException {
@@ -202,15 +207,15 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	public static void notifyAllUsersWaitingRoomUpdate() throws RemoteException{
 		
 		StringBuilder sb = new StringBuilder("Rooms available: \n");
-		synchronized (gamesAvailableLock) {
-			for( WaitingRoom waitingRoom : gamesAvailable ){
+		synchronized (waitingRoomsAvailableLock) {
+			for( WaitingRoom waitingRoom : waitingRoomsAvailable ){
 				sb.append(waitingRoom.getRoomInfo()+"\n");
 			}
 		}
 		
 		String msg = sb.toString();
-		synchronized (loggedUsersLock) {
-			for( UserNotificationIF userCallback : loggedUsers){
+		synchronized (availableGuessersLock) {
+			for( UserNotificationIF userCallback : availableGuessers){
 				userCallback.notifyUser(msg);
 			}
 		}	
@@ -223,12 +228,13 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	 * @throws RemoteException
 	 */
 	public static void notifySingleUserWaitingRooms(UserNotificationIF callback) throws RemoteException {
-		callback.notifyUser("Rooms available: ");
-		synchronized (gamesAvailableLock) {
-			for( WaitingRoom waitingRoom : gamesAvailable ){
-				callback.notifyUser(waitingRoom.getRoomInfo());
+		StringBuilder sb = new StringBuilder("Rooms available: \n");
+		synchronized (waitingRoomsAvailableLock) {
+			for( WaitingRoom waitingRoom : waitingRoomsAvailable ){
+				sb.append(waitingRoom.getRoomInfo()+"\n");
 			}
 		}
+		callback.notifyUser(sb.toString());
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -277,9 +283,9 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	public Map<String,UserInfo> getRegisterdUserInfo() throws FileNotFoundException, IOException, ClassNotFoundException{
+	public HashMap<String,UserInfo> getRegisterdUserInfo() throws FileNotFoundException, IOException, ClassNotFoundException{
 		List<Pair> retrievedInfo;
-		Map<String, UserInfo> users = new ConcurrentHashMap<String, UserInfo>();
+		HashMap<String, UserInfo> users = new HashMap<String, UserInfo>();
 		
 		ObjectInputStream input = new ObjectInputStream( new FileInputStream("users.data"));
 		retrievedInfo = (List<Pair>) input.readObject();
@@ -293,5 +299,79 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		return users;
 	}
 	
+	public static boolean createNewWaitingRoom(String roomName, int requiredGuessers, WaitingRoomLock roomWait){
+		boolean result = false;
+		String 	password 		= "uninitializedPassword",
+				multicastAddr 	= "uninitializedAddress";
+		
+		
+		// check if the number of rooms already created ;p
+		synchronized (currentNumberOfWaitingRoomsLock) {
+			if(currentNumberOfWaitingRooms < maxNumberOfWaitingRooms){
+				currentNumberOfWaitingRooms++;
+				password = passwordGenerator.nextPassword(); // since these methods are only used here avoid having a separate lock
+				multicastAddr = multicastAddrGenerator.getMulticastAddress();
+				result = true;
+			}
+			else{
+				result = false;
+			}
+		}
+		
+		if(result == true){
+			WaitingRoom newWaitingRoom = new WaitingRoom(roomName, requiredGuessers, password, multicastAddr, roomWait);
+			
+			synchronized (waitingRoomsAvailableLock) {
+				waitingRoomsAvailable.add(newWaitingRoom);
+			}
+			
+			synchronized (usersLock) {
+				users.get(roomName).setWaitingRoom(newWaitingRoom);
+			}
+			
+			try {
+				notifyAllUsersWaitingRoomUpdate();
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return result;
+	}
+	
+	public static void addAvailableGuesser(String userName){
+		UserNotificationIF callback;
+		
+		synchronized(usersLock){
+			callback = users.get(userName).getCallback();
+		}
+		
+		synchronized (availableGuessersLock) {
+			availableGuessers.add(callback);
+		}
+	}
+	
+	public static boolean joinRoom(String roomName, String userName){
+		WaitingRoom roomToJoin;
+		boolean result;
+		synchronized (usersLock) {
+			roomToJoin = users.get(roomName).getWaitingRoom();
+			if(roomToJoin.addGuesser(userName)){
+				users.get(userName).setWaitingRoom(roomToJoin);
+				result = true;
+			} else {
+				result = false;
+			}
+		}
+		return result;
+	}
+	
+	public static WaitingRoomLock getRoomWaitLock(String roomName){
+		WaitingRoomLock lock;
+		synchronized(usersLock){
+			lock = users.get(roomName).getWaitingRoom().getWaitLock();
+		}
+		return lock;
+	}
 	
 }
