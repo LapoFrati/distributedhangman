@@ -2,8 +2,9 @@ package registry;
 
 public class UserInfo {
 	private boolean loggedIn;
-	private String encryptedPassword, host;
+	private String encryptedPassword;
 	private UserNotificationIF callback = null;
+	private WaitingRoom waitingRoom;
 	
 	public UserInfo(String encryptedPassword){
 		this.loggedIn = false;
@@ -26,19 +27,19 @@ public class UserInfo {
 		return this.encryptedPassword;
 	}
 	
-	public void setHost(String newHost){
-		this.host = newHost;
-	}
-	
-	public String getHost(){
-		return this.host;
-	}
-	
 	public void setCallback(UserNotificationIF callback){
 		this.callback = callback;
 	}
 	
 	public UserNotificationIF getCallback(){
 		return this.callback;
+	}
+	
+	public void setWaitingRoom( WaitingRoom newRoom ){
+		this.waitingRoom = newRoom;
+	}
+	
+	public WaitingRoom getWaitingRoom(){
+		return this.waitingRoom;
 	}
 }
