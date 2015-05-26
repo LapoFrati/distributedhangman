@@ -7,9 +7,9 @@ import java.rmi.NotBoundException;
 
 import userAgent.User;
 
-public class LaunchGuesser {
+public class LaunchGuesser2 {
 	public static void main(String[] args) throws ClassNotFoundException, IOException, NotBoundException {
-		String inputString = "Test\nqwerty\ng\nLapo\n";
+		String inputString = "Test2\nqwerty\ng\nLapo\n";
 		InputStream inStream = new ByteArrayInputStream(inputString.getBytes());
 		System.setIn(inStream);
 		User.main(null);
