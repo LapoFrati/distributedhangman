@@ -17,19 +17,15 @@ public class Test {
 		System.out.println(maxMulticastAddr);
 		
 		MulticastAddrGenerator testGenerator = new MulticastAddrGenerator("224.0.0.0", "224.0.0.4");
-		
-		/*for(int i = 0; i < 10; i++){
+		System.out.println(maxMulticastAddr - baseMulticastAddr);
+		for(int i = 0; i < 10; i++){
 			System.out.println(testGenerator.getMulticastAddress());
 		}
-		*/
 		
-		StaticTest test1 = new StaticTest();
-		StaticTest test2 = new StaticTest();
-		
-		/*System.out.println(nextPassword(random));
 		System.out.println(nextPassword(random));
 		System.out.println(nextPassword(random));
-		*/
+		System.out.println(nextPassword(random));
+		
 	}
 	
 	public static class StaticTest{

@@ -9,7 +9,7 @@ import userAgent.User;
 
 public class LaunchMaster {
 	public static void main(String[] args) throws ClassNotFoundException, IOException, NotBoundException {
-		String inputString = "Lapo\nFrati\nm\n10\n";
+		String inputString = "Lapo\nFrati\nm\n2\n";
 		InputStream inStream = new ByteArrayInputStream(inputString.getBytes());
 		System.setIn(inStream);
 		User.main(null);
