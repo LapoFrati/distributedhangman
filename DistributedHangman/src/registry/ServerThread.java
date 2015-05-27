@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-
 import messages.JSONCodes;
 
 import org.json.simple.JSONObject;
@@ -15,6 +14,7 @@ import org.json.simple.parser.ParseException;
 public class ServerThread extends Thread{
 	private Socket 	socket = null;
 	private long 	timeout;
+	private ConnectionTimeoutThread connectionTimeout;
 
 	
 	public ServerThread( Socket socket, long timeout){
@@ -27,7 +27,7 @@ public class ServerThread extends Thread{
 	public void run() {
 		String role;
 		// start timeout to close the socket
-		ConnectionTimeoutThread connectionTimeout = new ConnectionTimeoutThread(socket, timeout);
+		connectionTimeout = new ConnectionTimeoutThread(socket, timeout, Thread.currentThread());
 		connectionTimeout.start();
 		
         try (
@@ -41,91 +41,138 @@ public class ServerThread extends Thread{
 			JSONObject 	messageFromClient 	= (JSONObject) new JSONParser().parse(in.readLine()),
 						messageToClient 	= new JSONObject();
 						role 				= (String) messageFromClient.get(JSONCodes.role);
-			Boolean 	waitCompletion		= true;
+			String 	roomName		= "",
+					password 		= "",
+					multicastAddr 	= "";
 			
 			System.out.println("New "+role);
 			
 			switch(role){
 				case JSONCodes.master :{
 										WaitingRoomLock roomWaitLock = new WaitingRoomLock();
-										String 	roomName 			= (String) messageFromClient.get(JSONCodes.roomName);
+										WaitingRoom waitingRoom; 
 										int 	requiredGuessers 	= ((Long) messageFromClient.get(JSONCodes.numberOfGuessers)).intValue(),
 												waitMultiplier 		= 1;
-										boolean gameStarting = false;
-										System.out.println("Creating master");
-										while(!gameStarting){
-											while(MyRegistry.createNewWaitingRoom(roomName, requiredGuessers, roomWaitLock) == false){
-												out.println(JSONCodes.waitingRoomsFull);
+										boolean masterLeft	 		= false;
 												
-												try { // incremental wait if there are no available rooms
-													Thread.sleep(1000*waitMultiplier); 
-													waitMultiplier++;
-												} catch (InterruptedException e){}
-											}
-											// here the new room has been created
-											messageToClient.put(JSONCodes.message, JSONCodes.newRoomCreated);
-											out.println(messageToClient);
-											synchronized (roomWaitLock) {
-												while(waitCompletion){
-													try {
-														roomWaitLock.wait();
-														waitCompletion = false;
-													} catch (InterruptedException e) {
-														e.printStackTrace();
-													}
-												}
-												gameStarting = roomWaitLock.checkIfGameStarting();
-											}
-											if(!gameStarting){
-												
+										roomName = (String) messageFromClient.get(JSONCodes.roomName);
+										
+										Thread.currentThread().setName(roomName);
+										
+										waitingRoom = new WaitingRoom(roomName, requiredGuessers, roomWaitLock);
+										
+										// try to create a new room
+										while(MyRegistry.createNewWaitingRoom(roomName, waitingRoom) == false){
+											out.println(JSONCodes.waitingRoomsFull);
+											
+											try { // incremental wait if there are no available rooms
+												Thread.sleep(1000*waitMultiplier); 
+												waitMultiplier++;
+											} catch (InterruptedException e){
+												masterLeft = true;
+												break; 
 											}
 										}
+										
+										
+										if(!masterLeft)
+											messageToClient.put(JSONCodes.message, JSONCodes.newRoomCreated);
+										else
+											messageToClient.put(JSONCodes.message, JSONCodes.roomClosed);
+											
+										out.println(messageToClient);
+										
+										if(!masterLeft){
+											synchronized (roomWaitLock) {
+												
+												try {
+													roomWaitLock.wait();
+													// if master wakes up as planned the game is starting
+													password		= roomWaitLock.getPassword();
+													multicastAddr 	= roomWaitLock.getMulticast();
+												} catch (InterruptedException e) {
+													if(connectionTimeout.timeoutExpired)
+														roomWaitLock.notifyAll(); // wake up all guessers
+													masterLeft = true;
+												}
+												
+												MyRegistry.closeWaitingRoom(roomName, waitingRoom); // close room and stop new guessers
+											}
+										}
+										
+										// Prepare message to client
+										if(!masterLeft){ // send information needed to start the game
+											messageToClient.put(JSONCodes.message, JSONCodes.gameStarting);
+											messageToClient.put(JSONCodes.roomPassword, password);
+											messageToClient.put(JSONCodes.roomMulticast, multicastAddr);
+										} else { // acknowledge the master leaving the room
+											// TODO avoid this message since master requested it?
+											messageToClient.put(JSONCodes.message, JSONCodes.roomClosed);
+										}
+										out.println(messageToClient);
 										break;
 									   }
 				
 				case JSONCodes.guesser:{
-										WaitingRoomLock 	roomWaitLock;
-										String 	userName 		= (String) messageFromClient.get(JSONCodes.userName),
-												roomName 		= "";
-										Boolean gameStarting 	= false;
-										System.out.println("Creating guesser");
-										MyRegistry.addAvailableGuesser(userName); // guesser receives available rooms' updates
+										WaitingRoomLock roomWaitLock;
+										String 			userName 		= (String) messageFromClient.get(JSONCodes.userName);
+										Boolean 		gameStarting 	= false;
+										
+										Thread.currentThread().setName(userName);
+										
+										MyRegistry.addAvailableGuesser(userName); //log guesser to receive available rooms' updates
 										
 										while(!gameStarting){
 											messageFromClient = (JSONObject) new JSONParser().parse(in.readLine());
 											roomName = (String) messageFromClient.get(JSONCodes.roomName);
-											while(MyRegistry.joinRoom( roomName, userName) == false){
+											while(MyRegistry.joinRoom( roomName ) == false){
 												messageToClient.put(JSONCodes.message, JSONCodes.guesserJoinError);
+												out.println(messageToClient);
 												messageFromClient = (JSONObject) new JSONParser().parse(in.readLine());
 												roomName = (String) messageFromClient.get(JSONCodes.roomName);
 											}
 											
 											roomWaitLock = MyRegistry.getRoomWaitLock(roomName);
+											
 											synchronized (roomWaitLock) { 
 												/* wait for:	- the master to leave
 												 *				- the game to start
 												 *				- the timeout to expire
 												 */
-												while(waitCompletion){
-													try {
+												try {
+													
+													if(gameStarting = roomWaitLock.checkIfGameStarting()){ // checkIfGameStart notifies users if needed
+														password		= roomWaitLock.getPassword();
+														multicastAddr 	= roomWaitLock.getMulticast();
+													} else {
 														roomWaitLock.wait();
-														waitCompletion = false;
-													} catch (InterruptedException e) {
-														e.printStackTrace();
+														if(gameStarting = roomWaitLock.checkIfGameStarting()){ // check if woke up by master leaving
+															password		= roomWaitLock.getPassword();
+															multicastAddr 	= roomWaitLock.getMulticast();
+														}
 													}
+													System.out.println("Game starting :"+gameStarting);
+													
+												} catch (InterruptedException e) {
+													// timeout expired
+													MyRegistry.leaveRoom(roomName);
+													MyRegistry.removeAvailableGuesser(userName);
+													gameStarting = false;
 												}
-												gameStarting = roomWaitLock.checkIfGameStarting();
 											}
-											if(!gameStarting){ // room closed because master left
+											
+											if(!gameStarting){ // room closed because master or guesser left
 												messageToClient.put(JSONCodes.message, JSONCodes.roomClosed);
 												out.println(messageToClient); // notify user to get the new room to join
 											}else{ // game starting
-												messageToClient.put(JSONCodes.message, JSONCodes.connectionClosed);
-												
+												messageToClient.put(JSONCodes.message, JSONCodes.gameStarting);
+												messageToClient.put(JSONCodes.roomPassword, password);
+												messageToClient.put(JSONCodes.roomMulticast, multicastAddr);
+												out.println(messageToClient); // send info to start game
 											}
 										}
 										
-										// guesser has joined the room
+										// game is starting
 										
 										break;
 									   }
@@ -137,14 +184,7 @@ public class ServerThread extends Thread{
 			e.printStackTrace();
 		}
         
-        	try { // terminate connectionTimeout's alarm to close the socket.
-        		connectionTimeout.alarmActivated = false;
-        		connectionTimeout.interrupt();
-				connectionTimeout.join();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+        	closeConnection();
         	
         	System.out.println("joined Timeout Thread");
         	
@@ -152,4 +192,14 @@ public class ServerThread extends Thread{
             e.printStackTrace();
         }
     }
+	private void closeConnection(){
+		try { // terminate connectionTimeout's alarm to close the socket.
+    		connectionTimeout.timeoutExpired = true;
+    		connectionTimeout.disableInterrupt = true;
+    		connectionTimeout.interrupt();
+			connectionTimeout.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 }
