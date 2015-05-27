@@ -3,7 +3,10 @@ package registryTest;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 
+import org.jasypt.util.text.BasicTextEncryptor;
+
 import registry.MulticastAddrGenerator;
+import userAgent.TargetWord;
 
 public class Test {
 	
@@ -25,6 +28,77 @@ public class Test {
 		System.out.println(nextPassword(random));
 		System.out.println(nextPassword(random));
 		System.out.println(nextPassword(random));
+		System.out.println();
+		System.out.println();
+		
+		String test = "arancia";
+		char[] testArr = test.toCharArray();
+		boolean[] lettersArr = new boolean[26];
+		
+		for(char ch : testArr){
+			lettersArr[ch - 'a'] = true;
+		}
+		
+		int counter = 0;
+		char base = 'a';
+		for(boolean bool : lettersArr){
+			
+			System.out.print(bool);
+			System.out.println(" "+base);
+			base = (char)((int)base+1);
+		}
+		
+		System.out.println();
+		System.out.println();
+		
+		TargetWord target = new TargetWord("arancia");
+		System.out.println("Has a?");
+		System.out.println(target.has('a'));
+		System.out.println(target.stringSoFar());
+		System.out.print("Game finished? ");
+		System.out.println(target.isGameFinished());
+		System.out.println("Has b?");
+		System.out.println(target.has('b'));
+		System.out.println(target.stringSoFar());
+		System.out.print("Game finished? ");
+		System.out.println(target.isGameFinished());
+		System.out.println("Has c?");
+		System.out.println(target.has('c'));
+		System.out.println(target.stringSoFar());
+		System.out.print("Game finished? ");
+		System.out.println(target.isGameFinished());
+		System.out.println("Has r?");
+		System.out.println(target.has('r'));
+		System.out.println(target.stringSoFar());
+		System.out.print("Game finished? ");
+		System.out.println(target.isGameFinished());
+		System.out.println("Has n?");
+		System.out.println(target.has('n'));
+		System.out.println(target.stringSoFar());
+		System.out.print("Game finished? ");
+		System.out.println(target.isGameFinished());
+		System.out.println("Has t?");
+		System.out.println(target.has('t'));
+		System.out.println(target.stringSoFar());
+		System.out.print("Game finished? ");
+		System.out.println(target.isGameFinished());
+		System.out.println("Has i?");
+		System.out.println(target.has('i'));
+		System.out.println(target.stringSoFar());
+		System.out.print("Game finished? ");
+		System.out.println(target.isGameFinished());
+		
+		BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
+		textEncryptor.setPassword("asd");
+		
+		String myEncryptedText = textEncryptor.encrypt("prova");
+		System.out.println(myEncryptedText);
+		
+		String plainText = textEncryptor.decrypt(myEncryptedText);
+		System.out.println(plainText);
+		
+		plainText = textEncryptor.decrypt("blablabla");
+		System.out.println(plainText);
 		
 	}
 	
@@ -47,9 +121,6 @@ public class Test {
 			System.out.println("inside printinc constructor");
 		}
 	}
-	
-	
-	
 	
 		/* This works by choosing 130 bits from a cryptographically secure random bit generator, 
 		 * and encoding them in base-32. 128 bits is considered to be cryptographically strong, but
