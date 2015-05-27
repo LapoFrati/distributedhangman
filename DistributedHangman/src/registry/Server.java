@@ -22,7 +22,8 @@ public class Server {
 				registryPort 			= config.getJsonField(JSONCodes.registryPort),
 				baseMulticastAddr		= config.getJsonField(JSONCodes.baseMulticastAddr),
 				maxMulticastAddr		= config.getJsonField(JSONCodes.maxMulticastAddr);
-			int	maxNumberOfWaitingRooms = Integer.valueOf(config.getJsonField(JSONCodes.maxNumberOfGames));
+			int	maxNumberOfWaitingRooms = Integer.valueOf(config.getJsonField(JSONCodes.maxNumberOfGames)),
+				timeoutLength			= Integer.valueOf(config.getJsonField(JSONCodes.timeoutLength));
     	
     	// Start registry for RMI
     	MyRegistry myLogin = new MyRegistry(maxNumberOfWaitingRooms,baseMulticastAddr,maxMulticastAddr);
@@ -42,8 +43,7 @@ public class Server {
         Executor myPool = Executors.newCachedThreadPool();
         try{
         	while(true){
-        		myPool.execute(new ServerThread(serverSocket.accept(), 20));
-        		// TODO: read the timeout length from the config file
+        		myPool.execute(new ServerThread(serverSocket.accept(), timeoutLength));
         		}
         }finally{
         	serverSocket.close();
