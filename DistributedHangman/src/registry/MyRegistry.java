@@ -18,6 +18,7 @@ import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+
 import org.jasypt.util.password.BasicPasswordEncryptor;
 
 import userAgent.LoginIF;
@@ -31,18 +32,15 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	private static final String 			PUBLIC_KEY_FILE 	= "public.key", 
 											PRIVATE_KEY_FILE 	= "private.key";
 	
-	private static PublicKey 				myPubKey;
-	private static PrivateKey 				myPrivKey;
-	//TODO map is using a concurrentHashMap and synchronization -> redundant
+	public static 	PublicKey 				myPubKey;
+	private static 	PrivateKey 				myPrivKey;
+	//TODO use concurrent hashmap to cut the number of locks
 	private static HashMap< String, UserInfo > 		users;
 	private static LinkedList<UserNotificationIF> 	availableGuessers 		= new LinkedList<UserNotificationIF>();
 	private static LinkedList< WaitingRoom >		waitingRoomsAvailable 	= new LinkedList<WaitingRoom>();
 	private static MulticastAddrGenerator 			multicastAddrGenerator;
 	
-	private static final Object availableGuessersLock 			= new Object(), 
-								waitingRoomsAvailableLock 		= new Object(), 
-								usersLock 						= new Object(),
-								serializationLock 				= new Object(),
+	private static final Object serializationLock 				= new Object(),
 								currentNumberOfWaitingRoomsLock = new Object();
 	
 	private static int 			maxNumberOfWaitingRooms, 
@@ -94,7 +92,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	 */
 	public boolean isRegisteredUser(String userName) throws RemoteException {
 		Boolean result;
-		synchronized (usersLock) {
+		synchronized (users) {
 			result = users.containsKey(userName);
 		}
 		return result;
@@ -115,7 +113,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		String password = EncryptionUtil.decrypt(text, myPrivKey); // The user's password is decrypted using the server's private key
 		UserInfo userInfo;
 		
-		synchronized (usersLock) {
+		synchronized (users) {
 			userInfo = users.get(userName); // Fetch the user's info	
 			if(userInfo.isLoggedIn()){
 				result = false; // the user is already logged in.
@@ -150,7 +148,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	public synchronized boolean registerNewUser(String userName, byte[] text) throws ServerNotActiveException, FileNotFoundException, ClassNotFoundException, IOException {
 		boolean result = false;
 		
-		synchronized (usersLock) {
+		synchronized (users) {
 			if( !users.containsKey(userName) ){
 				String password = EncryptionUtil.decrypt(text, myPrivKey); // The user's password is decrypted using the server's private key
 				UserInfo newUserInfo = new UserInfo(passwordEncryptor.encryptPassword(password));
@@ -178,7 +176,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		UserInfo userInfo = null;
 		UserNotificationIF callback = null;
 		
-		synchronized (usersLock) {
+		synchronized (users) {
 			userInfo = users.get(userName);
 			userInfo.logout();
 			callback = userInfo.getCallback();
@@ -186,7 +184,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 			(userInfo.getCallback()).closeCallback();
 		}
 		
-		synchronized (availableGuessersLock) {
+		synchronized (availableGuessers) {
 			availableGuessers.remove(callback);
 		}
 		
@@ -207,14 +205,14 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	public static void notifyAllUsersWaitingRoomUpdate() throws RemoteException{
 		
 		StringBuilder sb = new StringBuilder("Rooms available: \n");
-		synchronized (waitingRoomsAvailableLock) {
+		synchronized (waitingRoomsAvailable) {
 			for( WaitingRoom waitingRoom : waitingRoomsAvailable ){
 				sb.append(waitingRoom.getRoomInfo()+"\n");
 			}
 		}
 		
 		String msg = sb.toString();
-		synchronized (availableGuessersLock) {
+		synchronized (availableGuessers) {
 			for( UserNotificationIF userCallback : availableGuessers){
 				userCallback.notifyUser(msg);
 			}
@@ -229,7 +227,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	 */
 	public static void notifySingleUserWaitingRooms(UserNotificationIF callback) throws RemoteException {
 		StringBuilder sb = new StringBuilder("Rooms available: \n");
-		synchronized (waitingRoomsAvailableLock) {
+		synchronized (waitingRoomsAvailable) {
 			for( WaitingRoom waitingRoom : waitingRoomsAvailable ){
 				sb.append(waitingRoom.getRoomInfo()+"\n");
 			}
@@ -299,33 +297,29 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		return users;
 	}
 	
-	public static boolean createNewWaitingRoom(String roomName, int requiredGuessers, WaitingRoomLock roomWait){
+	public static boolean createNewWaitingRoom(String roomName, WaitingRoom newWaitingRoom){
 		boolean result = false;
-		String 	password 		= "uninitializedPassword",
-				multicastAddr 	= "uninitializedAddress";
-		
 		
 		// check if the number of rooms already created ;p
 		synchronized (currentNumberOfWaitingRoomsLock) {
 			if(currentNumberOfWaitingRooms < maxNumberOfWaitingRooms){
 				currentNumberOfWaitingRooms++;
-				password = passwordGenerator.nextPassword(); // since these methods are only used here avoid having a separate lock
-				multicastAddr = multicastAddrGenerator.getMulticastAddress();
+				newWaitingRoom.setPassword(passwordGenerator.nextPassword()); // the new room is still not in the list so we can access it without synchronization
+				newWaitingRoom.setMulticast(multicastAddrGenerator.getMulticastAddress());
 				result = true;
 			}
 			else{
 				result = false;
 			}
-		}
+		} // the new room has not been added yet but the counter has been increased so we can release the lock
 		
 		if(result == true){
-			WaitingRoom newWaitingRoom = new WaitingRoom(roomName, requiredGuessers, password, multicastAddr, roomWait);
 			
-			synchronized (waitingRoomsAvailableLock) {
+			synchronized (waitingRoomsAvailable) {
 				waitingRoomsAvailable.add(newWaitingRoom);
 			}
 			
-			synchronized (usersLock) {
+			synchronized (users) { // save room in the master info so that it can be retrieved by name
 				users.get(roomName).setWaitingRoom(newWaitingRoom);
 			}
 			
@@ -341,37 +335,59 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	
 	public static void addAvailableGuesser(String userName){
 		UserNotificationIF callback;
-		
-		synchronized(usersLock){
+		synchronized(users){
 			callback = users.get(userName).getCallback();
 		}
 		
-		synchronized (availableGuessersLock) {
+		synchronized (availableGuessers) {
 			availableGuessers.add(callback);
 		}
 	}
 	
-	public static boolean joinRoom(String roomName, String userName){
-		WaitingRoom roomToJoin;
+	public static void removeAvailableGuesser(String userName){
+		UserNotificationIF callback;
+		
+		synchronized(users){
+			callback = users.get(userName).getCallback();
+		}
+		
+		synchronized (availableGuessers) {
+			availableGuessers.remove(callback);
+		}
+	}
+	
+	public static boolean joinRoom(String roomName){
 		boolean result;
-		synchronized (usersLock) {
-			roomToJoin = users.get(roomName).getWaitingRoom();
-			if(roomToJoin.addGuesser(userName)){
-				users.get(userName).setWaitingRoom(roomToJoin);
-				result = true;
-			} else {
-				result = false;
-			}
+		WaitingRoom room;
+		synchronized (users) {
+			room = users.get(roomName).getWaitingRoom();
+			result = (room != null ) ? room.addGuesser() : false;
 		}
 		return result;
 	}
 	
+	public static void leaveRoom(String roomName){
+		synchronized(users){
+			users.get(roomName).getWaitingRoom().removeGuesser();
+		}
+	}
+	
 	public static WaitingRoomLock getRoomWaitLock(String roomName){
 		WaitingRoomLock lock;
-		synchronized(usersLock){
+		synchronized(users){
 			lock = users.get(roomName).getWaitingRoom().getWaitLock();
 		}
 		return lock;
+	}
+	
+	public static void closeWaitingRoom(String user, WaitingRoom room){
+		
+		synchronized (users) { // set the room to null to stop new users from joining it
+			users.get(user).setWaitingRoom(null);
+		}
+		synchronized (waitingRoomsAvailable) {
+			waitingRoomsAvailable.remove(room);
+		}
 	}
 	
 }
