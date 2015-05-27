@@ -39,10 +39,12 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 	public static void main(String[] args) throws IOException, NotBoundException, ClassNotFoundException{
 
 		ReadConfigurationFile config = new ReadConfigurationFile("userConfig.json");
-		String 	serverIP     = config.getJsonField(JSONCodes.serverIP), 
-				registryName = config.getJsonField(JSONCodes.registryName),
-				registryPort = config.getJsonField(JSONCodes.registryPort),
-				serverPort   = config.getJsonField(JSONCodes.serverPort);
+		String 	serverIP     	= config.getJsonField(JSONCodes.serverIP), 
+				registryName 	= config.getJsonField(JSONCodes.registryName),
+				registryPort 	= config.getJsonField(JSONCodes.registryPort),
+				serverPort   	= config.getJsonField(JSONCodes.serverPort),
+				password		= "",
+				multicast		= "";
 		
 		BufferedReader stdIn = new BufferedReader( new InputStreamReader(System.in) );
 		
@@ -100,6 +102,7 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 			        		while(keepReading){
 				        		try {
 									messageFromServer = (JSONObject) new JSONParser().parse(in.readLine());
+									
 								} catch (ParseException e) {
 									e.printStackTrace();
 								}
@@ -108,14 +111,16 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 			        													break;
 			        				case JSONCodes.newRoomCreated:		System.out.println("New room created. Waiting for guessers.");
 			        													break;
+			        				case JSONCodes.gameStarting:		password  = (String) messageFromServer.get(JSONCodes.roomPassword);
+					        											multicast = (String) messageFromServer.get(JSONCodes.roomMulticast);
+					        											break;	
 			        				case JSONCodes.connectionClosed: 	keepReading = false;
 			        													System.out.println("Connection closed.");
 			        													break;
 			        			}
 			        		}
 			        		
-			        		// password  = (String) messageFromServer.get(JSONCodes.password)
-			        		// multicast = password = (String) messageFromServer.get(JSONCodes.multicast) 
+			        		System.out.println(password + "-" + multicast);
 			        		//Master master = new Master(out, in, userName);
 			        		//master.createGame();
 			        		break;
@@ -128,10 +133,13 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 			        		
 			        		System.out.println("Choose room to join: ");
 			        		messageToServer.put(JSONCodes.roomName, stdIn.readLine());
+			        		out.println(messageToServer);
 			        		while(keepReading){
 			        			try {
-									messageFromServer = (JSONObject) new JSONParser().parse(in.readLine());
+			        				messageFromServer = (JSONObject) new JSONParser().parse(in.readLine());
+									
 								} catch (ParseException e) {
+									System.out.println("Message:" + messageFromServer);
 									e.printStackTrace();
 								}
 			        			switch((String) messageFromServer.get(JSONCodes.message)){
@@ -141,15 +149,16 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 			        				case JSONCodes.connectionClosed:	System.out.println("Game is starting");
 			        													keepReading = false;
 			        													break;
+			        				case JSONCodes.gameStarting: 		password  = (String) messageFromServer.get(JSONCodes.roomPassword);
+					        											multicast = (String) messageFromServer.get(JSONCodes.roomMulticast);
+					        											break;
 			        				case JSONCodes.roomClosed:			System.out.println("Room closed.");
 			        				case JSONCodes.guesserJoinError:	System.out.println("Choose room to join: ");
 					        											out.println(stdIn.readLine());
 					        											break;
 			        			}		
 			        		}
-			        		
-			        		// password  = (String) messageFromServer.get(JSONCodes.password)
-			        		// multicast = password = (String) messageFromServer.get(JSONCodes.multicast) 
+			        		System.out.println(password + "-" + multicast);
 			        		//Guesser guesser = new Guesser(out, in, userName);
 			        		//guesser.searchForGame();
 			        		
@@ -220,7 +229,7 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 				System.out.println("Registering new user: "+userName);
 				reg.registerNewUser(userName, encryptedPassword);
 			}
-		
+			
 		}while(reg.logIn(userName, encryptedPassword, new User()) == false);
 	}
 	
