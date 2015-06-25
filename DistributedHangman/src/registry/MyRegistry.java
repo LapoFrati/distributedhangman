@@ -34,7 +34,6 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	
 	public static 	PublicKey 				myPubKey;
 	private static 	PrivateKey 				myPrivKey;
-	//TODO use concurrent hashmap to cut the number of locks
 	private static HashMap< String, UserInfo > 		users;
 	private static LinkedList<UserNotificationIF> 	availableGuessers 		= new LinkedList<UserNotificationIF>();
 	private static LinkedList< WaitingRoom >		waitingRoomsAvailable 	= new LinkedList<WaitingRoom>();
