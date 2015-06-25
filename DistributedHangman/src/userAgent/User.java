@@ -44,7 +44,8 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 				registryPort 	= config.getJsonField(JSONCodes.registryPort),
 				serverPort   	= config.getJsonField(JSONCodes.serverPort),
 				password		= "",
-				multicast		= "";
+				multicast		= "",
+				role			= "";
 		
 		BufferedReader stdIn = new BufferedReader( new InputStreamReader(System.in) );
 		
@@ -69,8 +70,7 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
                     new BufferedReader(
                         new InputStreamReader(serverSocket.getInputStream()));
             ){
-        		
-	        	String role;
+
 	        	do{
 	        		System.out.println("Choose role: ");
 	        		role = stdIn.readLine();
@@ -80,9 +80,17 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 	        	
 	        	switch(role){
 	        	case "m": {	messageToServer = new JSONObject();
-				        	int numberOfGuessers = 4;
-			        		boolean readNumber = true,
-			        				keepReading = true;
+				        	int 	numberOfGuessers = 4,
+				        			numberOfAttempts = 0;
+			        		
+				        	boolean readNumber = true,
+			        				keepReading = true,
+			        				attemptsOk = false,
+			        				proceed = false;
+				        	
+				        	String 	targetword = "",
+		        					reply = "";
+				        	
 			        		System.out.println("Required number of guesser: ");
 			        		while(readNumber){
 			        			try{
@@ -121,8 +129,41 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 			        		}
 			        		
 			        		System.out.println(password + "-" + multicast);
-			        		//Master master = new Master(out, in, userName);
-			        		//master.createGame();
+			        		
+		        			System.out.println("Starting Master");
+		        			
+		        			System.out.println("Choose the target word");
+		        			
+		        			do{
+		        				targetword = stdIn.readLine();
+		        				System.out.println("The chosen word is: " + targetword+".");
+		        				do{
+		        					System.out.println("Proceed? [Y/N]");
+		        					reply = stdIn.readLine(); 
+		        				}while(reply.matches("y|Y|n|N"));
+		        				
+		        				if(reply.matches("n|N")){
+		        					proceed = false;
+		        				} else {
+		        					proceed = true;
+		        				}
+		        			}
+		        			while(!proceed);
+		        			
+		        			System.out.println("Choose number of allowed attempts.");
+		        			while(!attemptsOk){
+		        				try {
+		        					numberOfAttempts = Integer.valueOf(stdIn.readLine());
+								} catch (Exception e) {}
+		        				if(numberOfAttempts >0 ){
+		        					attemptsOk = true;
+		        				} else {
+		        					attemptsOk = false;
+		        				}
+		        			}
+		        			
+		        			MasterWorker master = new MasterWorker(password, multicast, targetword, numberOfAttempts);
+		        			master.startGame();
 			        		break;
 	        			  }
 	        	case "g":{	Boolean keepReading = true;
@@ -159,20 +200,18 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 			        			}		
 			        		}
 			        		System.out.println(password + "-" + multicast);
-			        		//Guesser guesser = new Guesser(out, in, userName);
-			        		//guesser.searchForGame();
-			        		
+			        		Guesser guesser = new Guesser(userName, password,multicast);
+			        		guesser.startGame();
 	        				break;
 	        			 }
 	        	}
 	        	
-        	try {
-        		System.out.println("Logging out "+userName);
-     			reg.logOut(userName);
-     		} catch (ServerNotActiveException e) {
-     			// TODO Auto-generated catch block
-     			e.printStackTrace();
-     		}
+	        	try {
+	        		System.out.println("Logging out "+userName);
+	     			reg.logOut(userName);
+	     		} catch (ServerNotActiveException e) {
+	     			e.printStackTrace();
+	     		}
         
             } catch (UnknownHostException e) {
                 System.out.println("Don't know about host " + InetAddress.getByName(serverIP));
