@@ -1,8 +1,12 @@
 package registryTest;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 
+import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 import org.jasypt.util.text.BasicTextEncryptor;
 
 import registry.MulticastAddrGenerator;
@@ -10,8 +14,10 @@ import userAgent.TargetWord;
 
 public class Test {
 	
-	public static void main(String[] args) {
+	@SuppressWarnings("unused")
+	public static void main(String[] args) throws IOException {
 		SecureRandom random = new SecureRandom();
+		BufferedReader stdIn = new BufferedReader( new InputStreamReader(System.in) );
 		
 		long baseMulticastAddr = ipToLong("224.0.0.0");
 		System.out.println(baseMulticastAddr);
@@ -88,17 +94,25 @@ public class Test {
 		System.out.print("Game finished? ");
 		System.out.println(target.isGameFinished());
 		
+		System.out.println(System.currentTimeMillis());
+		
 		BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
 		textEncryptor.setPassword("asd");
 		
 		String myEncryptedText = textEncryptor.encrypt("prova");
 		System.out.println(myEncryptedText);
 		
-		String plainText = textEncryptor.decrypt(myEncryptedText);
-		System.out.println(plainText);
+		try{
+			String plainText = textEncryptor.decrypt(myEncryptedText);
+			System.out.println(plainText);
+		}catch(EncryptionOperationNotPossibleException e){
+			System.out.println("caught");
+		}
 		
-		plainText = textEncryptor.decrypt("blablabla");
-		System.out.println(plainText);
+		
+		System.out.println(System.currentTimeMillis());
+		
+		//System.out.println("Received Guess = "+Test.getGuess());
 		
 	}
 	
@@ -157,5 +171,25 @@ public class Test {
 
         return sb.toString();
     }
+    
+    public static char getGuess() throws IOException{
+		String userInput;
+		char result = 0;
+		boolean guessAccepted = false;
+		BufferedReader stdIn = new BufferedReader( new InputStreamReader(System.in) );
+		
+		while(!guessAccepted){
+			System.out.println("Guess: ");
+			userInput = stdIn.readLine();
+			if(userInput.matches("[a-z]")){ // check input legality
+				guessAccepted = true;
+				result = userInput.toCharArray()[0]; // convert the one letter string to a char
+			}else{
+				System.out.println("Wrong input, must be a single letter.");
+			}
+		}
+		
+		return result;
+	}
 
 }
