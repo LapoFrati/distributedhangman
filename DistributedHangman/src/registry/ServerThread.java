@@ -91,8 +91,8 @@ public class ServerThread extends Thread{
 													password		= roomWaitLock.getPassword();
 													multicastAddr 	= roomWaitLock.getMulticast();
 												} catch (InterruptedException e) {
-													if(connectionTimeout.timeoutExpired)
-														roomWaitLock.notifyAll(); // wake up all guessers
+													//if master gets interrupted the timeout has finished
+													roomWaitLock.notifyAll(); // wake up all guessers
 													masterLeft = true;
 												}
 												
@@ -150,9 +150,7 @@ public class ServerThread extends Thread{
 															password		= roomWaitLock.getPassword();
 															multicastAddr 	= roomWaitLock.getMulticast();
 														}
-													}
-													System.out.println("Game starting :"+gameStarting);
-													
+													}													
 												} catch (InterruptedException e) {
 													// timeout expired
 													MyRegistry.leaveRoom(roomName);
@@ -194,7 +192,6 @@ public class ServerThread extends Thread{
     }
 	private void closeConnection(){
 		try { // terminate connectionTimeout's alarm to close the socket.
-    		connectionTimeout.timeoutExpired = true;
     		connectionTimeout.disableInterrupt = true;
     		connectionTimeout.interrupt();
 			connectionTimeout.join();
