@@ -1,7 +1,10 @@
 package userAgent;
 
+import java.util.ArrayList;
+
 public class TargetWord {
 	char[] target;
+	ArrayList<Character> previousGuesses;
 	boolean[] letters;
 	int lettersLeft;
 	StringBuilder sb;
@@ -18,24 +21,30 @@ public class TargetWord {
 		for(char ch : this.target){
 			if(letters[ch - 'a'] == false){
 				letters[ch - 'a'] = true;
-				lettersLeft++; // counts how many different letters there are, used to determine when the word has been guessed
+				lettersLeft++; // counts how many different letters there are, used to determine when the word has been completely guessed
 			}
 		}
 		sb = new StringBuilder();
+		previousGuesses = new ArrayList<Character>();
 	}
 	
 	public boolean has(char ch){
 		boolean result;
 		
 		if(letters[ch - 'a'] == true){
-			letters[ch - 'a'] = false; // new letter guessed correctly
-			lettersLeft--;
+			letters[ch - 'a'] = false; 	// new letter guessed correctly
+			lettersLeft--;				// one letter closer to the game end
+			previousGuesses.add(ch);	// store the correct guess;
 			result = true;
 		} else {
 			result = false;
 		}
 		
 		return result;
+	}
+	
+	public boolean isRepeatedGuess(char ch){
+		return this.previousGuesses.contains(ch);
 	}
 	
 	public String stringSoFar(){
@@ -51,23 +60,5 @@ public class TargetWord {
 	
 	public boolean isGameFinished(){
 		return lettersLeft == 0;
-	}
-	
-	public void test(){
-		String test = "arancia";
-		char[] testArr = test.toCharArray();
-		boolean[] lettersArr = new boolean[26];
-		
-		for(char ch : testArr){
-			lettersArr[ch - 'a'] = true;
-		}
-		
-		char base = 'a';
-		for(boolean bool : lettersArr){
-			
-			System.out.print(bool);
-			System.out.println(" "+base);
-			base = (char)((int)base+1);
-		}
 	}
 }
