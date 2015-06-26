@@ -25,9 +25,13 @@ public class Guesser {
 	@SuppressWarnings("unchecked")
 	public void startGame() throws IOException{
 		
-		boolean gameFinished = false, ackReceived, checkAck;
+		boolean gameFinished = false, ackReceived;
 		JSONObject messageToMaster = new JSONObject(), messageFromMaster;
 		char guess;
+		
+		// initialize fixed fields in the json used for communication
+		messageToMaster.put(JSONCodes.role, JSONCodes.guesser);
+		messageToMaster.put(JSONCodes.senderNick, userName);
 		
 		while(!gameFinished){
 			
@@ -35,17 +39,12 @@ public class Guesser {
 			messageToMaster.put(JSONCodes.guess, guess);
 			handler.send(messageToMaster);
 			
-			ackReceived = checkAck = false;
+			ackReceived = false;
 			
 			ackLoop: // label used to break out of loop if we end up in a game-ending state
 			while(!ackReceived){
 				
 				messageFromMaster = handler.receive();
-				
-				if((boolean)messageFromMaster.get(JSONCodes.guesserTimeout)){
-					// if the timeout expires start a new transaction
-					break ackLoop;
-				}
 
 				gameStatus = (String) messageFromMaster.get(JSONCodes.gameStatus);
 				
@@ -60,30 +59,38 @@ public class Guesser {
 					case JSONCodes.masterLost:		System.out.println("The word has been guessed. Guessers win the game.");
 													gameFinished = true;
 													break ackLoop;
-					default:						checkAck = true; // non game-ending status received
-													break;
+					default:						break; // non game-ending status received, continue with the checks		
 				}
 				
-				// check if the ACK is the same as our guess
-				if( checkAck && ((char) messageFromMaster.get(JSONCodes.guess)) == guess){
-					ackReceived = true;
-					// check the type of ACK we received
+				// check if we are the message's recipient
+				if(((String) messageFromMaster.get(JSONCodes.replyTo)).equals(userName)){
+					ackReceived = true; // we received the ack, we can proceed with a new guess afterwards
+					// check the outcome of our guess
 					switch(gameStatus){
-						case JSONCodes.correctGuess:	System.out.println("Correct guess.");
+						case JSONCodes.correctGuess:	System.out.println("Your guess was correct.");
+														String word = (String) messageFromMaster.get(JSONCodes.word);
+														System.out.println("["+word+"]");
 														break;
 						case JSONCodes.repeatedGuess:	System.out.println("Your guess: "+guess+" had already been made.");
 														break;
 						case JSONCodes.wrongGuess:		System.out.println("Wrong guess.");
 														break;
 					}
+				} else {
+					// the message was not targeted to us. check if contains useful information.
+					if(gameStatus.equals(JSONCodes.correctGuess)){
+						System.out.println("New correct guess:");
+						String word = (String) messageFromMaster.get(JSONCodes.word);
+						System.out.println("["+word+"]");
+					}
 				}
 			}
 		}
 	}
 	
-	private char getGuess() throws IOException{
+	protected char getGuess() throws IOException{
 		String userInput;
-		char result = 0;
+		char result = '-';
 		boolean guessAccepted = false;
 		
 		while(!guessAccepted){
@@ -93,7 +100,7 @@ public class Guesser {
 				guessAccepted = true;
 				result = userInput.toCharArray()[0]; // convert the one letter string to a char
 			}else{
-				System.out.println("Wrong input, must be a single letter.");
+				System.out.println("Wrong input, must be a single letter [a-z].");
 			}
 		}
 		
