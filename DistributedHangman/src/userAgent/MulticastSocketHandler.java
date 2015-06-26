@@ -18,8 +18,9 @@ public class MulticastSocketHandler {
 	private MulticastSocket socket;
 	private InetAddress group;
 	private int port;
-	BasicTextEncryptor textEncryptor;
+	private BasicTextEncryptor textEncryptor;
 	private String role;
+	private JSONObject latestMessage;
 	
 
 	
@@ -37,12 +38,12 @@ public class MulticastSocketHandler {
 	public void send(JSONObject msg) throws IOException {
 		String encryptedString = textEncryptor.encrypt(msg.toJSONString());
 		byte[] buf = encryptedString.getBytes();
+		latestMessage = msg; // store the message to resend it if needed
 		synchronized (socket) {
 			socket.send(new DatagramPacket(buf, buf.length, group, port));
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	public JSONObject receive() throws IOException {
 		byte[] buf = new byte[512];
 		JSONObject result = null;
@@ -56,9 +57,9 @@ public class MulticastSocketHandler {
 					socket.receive(packet);
 				}
 			} catch(SocketTimeoutException e){
-				result = new JSONObject();
-				result.put(JSONCodes.guesserTimeout, true);
-				break;
+				System.out.println("Receive's timeout expired. Trying again.");
+				this.send(latestMessage); // timeout expired re-send message and continue waiting for reply
+				continue;
 			}
 			
 			encryptedMessage = new String(packet.getData());
@@ -69,11 +70,11 @@ public class MulticastSocketHandler {
 				if(result.get(JSONCodes.role).equals(role)){
 					continue; // received message from the wrong source
 				} else {
-					result.put(JSONCodes.guesserTimeout, false);
 					newMessageReagy = true;
 				}
 			} catch (EncryptionOperationNotPossibleException | ParseException e) {
 				// received message was not correctly encrypted or not a valid JSON -> discard it
+				continue;
 			}
 		}
 		return result;
