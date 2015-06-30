@@ -39,6 +39,8 @@ public class JSONCodes {
 								ack					= "ACK",
 								word				= "WORD",
 								guess				= "GUESS",
+								senderNick			= "SENDER_NICK",
+								replyTo				= "REPLY_TO",
 								
 								gameStatus			= "GAME_STATUS",
 									correctGuess		= "CORRECT_GUESS",
