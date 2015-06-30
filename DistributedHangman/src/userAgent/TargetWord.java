@@ -31,10 +31,11 @@ public class TargetWord {
 	public boolean has(char ch){
 		boolean result;
 		
+		previousGuesses.add(ch); // store the new guess;
+		
 		if(letters[ch - 'a'] == true){
 			letters[ch - 'a'] = false; 	// new letter guessed correctly
 			lettersLeft--;				// one letter closer to the game end
-			previousGuesses.add(ch);	// store the correct guess;
 			result = true;
 		} else {
 			result = false;
