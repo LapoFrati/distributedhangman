@@ -27,7 +27,7 @@ public class Guesser {
 		
 		boolean gameFinished = false, ackReceived;
 		JSONObject messageToMaster = new JSONObject(), messageFromMaster;
-		char guess;
+		String guess;
 		
 		// initialize fixed fields in the json used for communication
 		messageToMaster.put(JSONCodes.role, JSONCodes.guesser);
@@ -44,7 +44,7 @@ public class Guesser {
 			ackLoop: // label used to break out of loop if we end up in a game-ending state
 			while(!ackReceived){
 				
-				messageFromMaster = handler.receive();
+				messageFromMaster = handler.guesserReceive();
 
 				gameStatus = (String) messageFromMaster.get(JSONCodes.gameStatus);
 				
@@ -88,9 +88,9 @@ public class Guesser {
 		}
 	}
 	
-	protected char getGuess() throws IOException{
+	protected String getGuess() throws IOException{
 		String userInput;
-		char result = '-';
+		String result = "-";
 		boolean guessAccepted = false;
 		
 		while(!guessAccepted){
@@ -98,7 +98,7 @@ public class Guesser {
 			userInput = stdIn.readLine();
 			if(userInput.matches("[a-z]")){ // check input legality
 				guessAccepted = true;
-				result = userInput.toCharArray()[0]; // convert the one letter string to a char
+				result = userInput; // convert the one letter string to a char
 			}else{
 				System.out.println("Wrong input, must be a single letter [a-z].");
 			}

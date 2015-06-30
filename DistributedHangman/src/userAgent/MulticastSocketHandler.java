@@ -44,14 +44,14 @@ public class MulticastSocketHandler {
 		}
 	}
 	
-	public JSONObject receive() throws IOException {
+	public JSONObject guesserReceive() throws IOException {
 		byte[] buf = new byte[512];
 		JSONObject result = null;
-		boolean newMessageReagy = false;
+		boolean newMessageReady = false;
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
 		String encryptedMessage, decryptedMessage;
 		
-		while(!newMessageReagy){
+		while(!newMessageReady){
 			try{
 				synchronized (socket) {
 					socket.receive(packet);
@@ -62,18 +62,54 @@ public class MulticastSocketHandler {
 				continue;
 			}
 			
-			encryptedMessage = new String(packet.getData());
+			encryptedMessage = new String(packet.getData(), 0, packet.getLength());
 			
 			try{
 				decryptedMessage = textEncryptor.decrypt(encryptedMessage);
 				result = (JSONObject) new JSONParser().parse(decryptedMessage);
-				if(result.get(JSONCodes.role).equals(role)){
+				if(((String)result.get(JSONCodes.role)).equals(role)){
 					continue; // received message from the wrong source
 				} else {
-					newMessageReagy = true;
+					newMessageReady = true;
 				}
 			} catch (EncryptionOperationNotPossibleException | ParseException e) {
 				// received message was not correctly encrypted or not a valid JSON -> discard it
+				continue;
+			}
+		}
+		return result;
+	}
+	
+	public JSONObject masterReceive() throws IOException {
+		byte[] buf = new byte[512];
+		JSONObject result = null;
+		boolean newMessageReady = false;
+		DatagramPacket packet = new DatagramPacket(buf, buf.length);
+		String encryptedMessage, decryptedMessage;
+		
+		while(!newMessageReady){
+			try{
+				synchronized (socket) {
+					socket.receive(packet);
+				}
+			} catch(SocketTimeoutException e){
+				System.out.println("Master's receive's timeout expired. Guessers left.");
+				return null; // notify the master returning a null value
+			}
+			
+			encryptedMessage = new String(packet.getData(), 0, packet.getLength());
+			try{
+				decryptedMessage = textEncryptor.decrypt(encryptedMessage);
+				result = (JSONObject) new JSONParser().parse(decryptedMessage);
+				if(((String)result.get(JSONCodes.role)).equals(role)){
+					continue; // received message from the wrong source
+				} else {
+					System.out.println(decryptedMessage);
+					newMessageReady = true;
+				}
+			} catch (EncryptionOperationNotPossibleException | ParseException e) {
+				// received message was not correctly encrypted or not a valid JSON -> discard it
+				e.printStackTrace();
 				continue;
 			}
 		}
