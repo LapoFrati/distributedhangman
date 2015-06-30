@@ -2,6 +2,7 @@ package userAgent;
 
 import java.io.IOException;
 import java.net.InetAddress;
+
 import messages.JSONCodes;
 
 import org.json.simple.JSONObject;
@@ -9,10 +10,7 @@ import org.json.simple.JSONObject;
 public class MasterWorker {
 	private MulticastSocketHandler handler;
 	private TargetWord targetWord;
-	private char receivedCh;
-	private JSONObject messageToGuessers, receivedMessage;
 	private int errors, numberOfAttempts;
-	private boolean gameFinished = false;
 	private MasterTerminationThread terminationThread;
 	
 	public MasterWorker(String password, String multicastAddr, String targetword, int numberOfAttempts) throws IOException{
@@ -25,18 +23,28 @@ public class MasterWorker {
 	
 	@SuppressWarnings("unchecked")
 	public void startGame() throws IOException{
+		JSONObject messageToGuessers, receivedMessage;
+		boolean gameFinished = false;
+		String replyTo, receivedGuess;
+		char receivedCh;
+		
+		// initialize role field
+		messageToGuessers = new JSONObject();
+		messageToGuessers.put(JSONCodes.role, JSONCodes.master);
 		
 		while(!gameFinished){
 			
 			
-			receivedMessage = handler.receive();
-			if((boolean) receivedMessage.get(JSONCodes.guesserTimeout)){
+			receivedMessage = handler.masterReceive();
+			if(receivedMessage == null){
 				break; // The guessers are not sending guesses anymore. They probably all left.
 			}
+			receivedGuess 	= (String)receivedMessage.get(JSONCodes.guess);
+			replyTo 		= (String)receivedMessage.get(JSONCodes.senderNick);
+			receivedCh = receivedGuess.charAt(0);
 			
-			receivedCh = (char)receivedMessage.get(JSONCodes.guess);
-			
-			messageToGuessers.put(JSONCodes.ack, receivedCh); // acknowledge the current guess
+			messageToGuessers.put(JSONCodes.ack, receivedGuess); // acknowledge the current guess
+			messageToGuessers.put(JSONCodes.replyTo, replyTo); // specify the target guesser
 			
 			/*
 			 * Update game status:	
@@ -62,7 +70,7 @@ public class MasterWorker {
 						}else
 							messageToGuessers.put(JSONCodes.gameStatus, JSONCodes.correctGuess);
 					}else{
-						System.out.println(errors++);
+						System.out.println(++errors);
 						if(errors >= numberOfAttempts){
 							messageToGuessers.put(JSONCodes.gameStatus, JSONCodes.masterWon);
 							gameFinished = true; 
@@ -75,6 +83,7 @@ public class MasterWorker {
 			messageToGuessers.put(JSONCodes.word, targetWord.stringSoFar());
 			handler.send(messageToGuessers);
 		}
+		System.out.println("Game finished.");
 		handler.close();
 	}
 }
