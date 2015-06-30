@@ -83,8 +83,7 @@ public class ServerThread extends Thread{
 										out.println(messageToClient);
 										
 										if(!masterLeft){
-											synchronized (roomWaitLock) {
-												
+											synchronized (roomWaitLock) {	
 												try {
 													roomWaitLock.wait();
 													// if master wakes up as planned the game is starting
