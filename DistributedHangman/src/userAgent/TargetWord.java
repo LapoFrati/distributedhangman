@@ -13,7 +13,7 @@ public class TargetWord {
 		lettersLeft = 0;
 		this.target = target.toCharArray();
 		
-		/* Array accessed by the char value. Contains true if the letters in in the word 
+		/* Array accessed by the char value. Contains true if the letters is in the word 
 		 * and has not been guessed yet.
 		 */
 		letters = new boolean[26]; 
@@ -57,6 +57,10 @@ public class TargetWord {
 				sb.append('_');
 		}
 		return sb.toString();
+	}
+	
+	public String guessesSoFar(){
+		return previousGuesses.toString();
 	}
 	
 	public boolean isGameFinished(){
