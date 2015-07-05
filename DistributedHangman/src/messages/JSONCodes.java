@@ -18,7 +18,6 @@ public class JSONCodes {
 								maxMulticastAddr	= "MAX_MULT_ADDR",
 								
 								// GAME CREATION
-								// TODO CHECK CODES
 								connectionClosed 	= "SOCKET_CLOSED",
 								waitingRoomsFull	= "WAITINGROOMS_FULL",
 								newRoomCreated		= "NEW_ROOM_CREATED",
@@ -39,8 +38,10 @@ public class JSONCodes {
 								ack					= "ACK",
 								word				= "WORD",
 								guess				= "GUESS",
+								previousGuesses		= "PREVIOUS_GUESSES",
 								senderNick			= "SENDER_NICK",
 								replyTo				= "REPLY_TO",
+								guesserLeft         = "GUESSER_LEFT", // boolean field
 								
 								gameStatus			= "GAME_STATUS",
 									correctGuess		= "CORRECT_GUESS",
