@@ -162,7 +162,7 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 		        				}
 		        			}
 		        			
-		        			MasterWorker master = new MasterWorker(password, multicast, targetword, numberOfAttempts);
+		        			MasterWorker master = new MasterWorker(password, multicast, targetword, numberOfAttempts,numberOfGuessers);
 		        			master.startGame();
 			        		break;
 	        			  }
@@ -200,7 +200,7 @@ public class User extends UnicastRemoteObject implements UserNotificationIF{
 			        			}		
 			        		}
 			        		System.out.println(password + "-" + multicast);
-			        		Guesser guesser = new Guesser(userName, password,multicast);
+			        		GuesserReceiver guesser = new GuesserReceiver(userName, password,multicast);
 			        		guesser.startGame();
 	        				break;
 	        			 }
