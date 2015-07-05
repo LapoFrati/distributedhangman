@@ -3,11 +3,11 @@ package userAgentTest;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
-import userAgent.Guesser;
+import userAgent.GuesserReceiver;
 
-public class GuesserAgent1 {
+public class GuesserAgentMultithread {
 	public static void main(String[] args) throws UnknownHostException, IOException {
-		Guesser guesser = new Guesser("Lapo", "test", "224.0.0.0");
+		GuesserReceiver guesser = new GuesserReceiver("Lapo", "test", "224.0.0.0");
 		guesser.startGame();
 	}
 }
