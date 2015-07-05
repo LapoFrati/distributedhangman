@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
 import messages.JSONCodes;
@@ -20,9 +21,7 @@ public class MulticastSocketHandler {
 	private int port;
 	private BasicTextEncryptor textEncryptor;
 	private String role;
-	private JSONObject latestMessage;
 	
-
 	
 	public MulticastSocketHandler(InetAddress group, int port, String password, int timeout, String role) throws IOException {
 		this.group = group;
@@ -38,10 +37,13 @@ public class MulticastSocketHandler {
 	public void send(JSONObject msg) throws IOException {
 		String encryptedString = textEncryptor.encrypt(msg.toJSONString());
 		byte[] buf = encryptedString.getBytes();
-		latestMessage = msg; // store the message to resend it if needed
-		synchronized (socket) {
+		
+		try{
 			socket.send(new DatagramPacket(buf, buf.length, group, port));
+		}catch(SocketException e){
+			System.out.println("Socket Closed");
 		}
+		
 	}
 	
 	public JSONObject guesserReceive() throws IOException {
@@ -53,13 +55,17 @@ public class MulticastSocketHandler {
 		
 		while(!newMessageReady){
 			try{
-				synchronized (socket) {
-					socket.receive(packet);
-				}
+				
+				socket.receive(packet);
+				
 			} catch(SocketTimeoutException e){
 				System.out.println("Receive's timeout expired. Trying again.");
-				this.send(latestMessage); // timeout expired re-send message and continue waiting for reply
-				continue;
+				result = null;
+				break;
+			} catch(SocketException e){
+				// socket has been closed
+				result = null;
+				break;
 			}
 			
 			encryptedMessage = new String(packet.getData(), 0, packet.getLength());
@@ -89,12 +95,17 @@ public class MulticastSocketHandler {
 		
 		while(!newMessageReady){
 			try{
-				synchronized (socket) {
 					socket.receive(packet);
-				}
+				
 			} catch(SocketTimeoutException e){
 				System.out.println("Master's receive's timeout expired. Guessers left.");
 				return null; // notify the master returning a null value
+			} catch(SocketException e){
+				if(Thread.interrupted()){
+					System.out.println("GAME OVER"); // master requests game termination
+					System.exit(0);
+				}
+				return null;
 			}
 			
 			encryptedMessage = new String(packet.getData(), 0, packet.getLength());
@@ -117,9 +128,8 @@ public class MulticastSocketHandler {
 	}
 	
 	public void close() throws IOException {
-		synchronized (socket) {
-			socket.leaveGroup(group);
-			socket.close();
-		}
+		socket.leaveGroup(group);
+		socket.close();
+		
 	}
 }
