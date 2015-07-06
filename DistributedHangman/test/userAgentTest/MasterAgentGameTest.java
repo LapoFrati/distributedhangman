@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import userAgent.MasterWorker;
 
-public class MasterAgent {
+public class MasterAgentGameTest {
 	public static void main(String[] args) throws IOException {
 		MasterWorker master = new MasterWorker("test", "224.0.0.0", "ape", 5, 1);
 		master.startGame();
