@@ -39,11 +39,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	private static LinkedList< WaitingRoom >		waitingRoomsAvailable 	= new LinkedList<WaitingRoom>();
 	private static MulticastAddrGenerator 			multicastAddrGenerator;
 	
-	private static final Object serializationLock 				= new Object(),
-								currentNumberOfWaitingRoomsLock = new Object();
-	
-	private static int 			maxNumberOfWaitingRooms, 
-								currentNumberOfWaitingRooms 	= 0;
+	private static final Object serializationLock 				= new Object();
 	
 	private static PasswordGenerator passwordGenerator 		= new PasswordGenerator();
 	
@@ -77,7 +73,6 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	    inputStream.close();
 	    
     	users = getRegisterdUserInfo();
-    	MyRegistry.maxNumberOfWaitingRooms = maxNumberOfWaitingRooms;
     	multicastAddrGenerator = new MulticastAddrGenerator(baseAddr, maxAddr);
 	    
 	}
@@ -296,40 +291,28 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		return users;
 	}
 	
-	public static boolean createNewWaitingRoom(String roomName, WaitingRoom newWaitingRoom){
-		boolean result = false;
+	public static WaitingRoom createNewWaitingRoom(String roomName, int requiredPlayers){
+		WaitingRoomLock roomWaitLock = new WaitingRoomLock();
+		WaitingRoom newWaitingRoom = new WaitingRoom(roomName, requiredPlayers, roomWaitLock);
 		
-		// check if the number of rooms already created ;p
-		synchronized (currentNumberOfWaitingRoomsLock) {
-			if(currentNumberOfWaitingRooms < maxNumberOfWaitingRooms){
-				currentNumberOfWaitingRooms++;
-				newWaitingRoom.setPassword(passwordGenerator.nextPassword()); // the new room is still not in the list so we can access it without synchronization
-				newWaitingRoom.setMulticast(multicastAddrGenerator.getMulticastAddress());
-				result = true;
-			}
-			else{
-				result = false;
-			}
-		} // the new room has not been added yet but the counter has been increased so we can release the lock
+		newWaitingRoom.setPassword(passwordGenerator.nextPassword()); // the new room is still not in the list so we can access it without synchronization
+		newWaitingRoom.setMulticast(multicastAddrGenerator.getMulticastAddress());
 		
-		if(result == true){
-			
-			synchronized (waitingRoomsAvailable) {
-				waitingRoomsAvailable.add(newWaitingRoom);
-			}
-			
-			synchronized (users) { // save room in the master info so that it can be retrieved by name
-				users.get(roomName).setWaitingRoom(newWaitingRoom);
-			}
-			
-			try {
-				notifyAllUsersWaitingRoomUpdate();
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
+		synchronized (waitingRoomsAvailable) {
+			waitingRoomsAvailable.add(newWaitingRoom);
 		}
 		
-		return result;
+		synchronized (users) { // save room in the master info so that it can be retrieved by name
+			users.get(roomName).setWaitingRoom(newWaitingRoom);
+		}
+		
+		try {
+			notifyAllUsersWaitingRoomUpdate();
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+		
+		return newWaitingRoom;
 	}
 	
 	public static void addAvailableGuesser(String userName){
@@ -388,5 +371,4 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 			waitingRoomsAvailable.remove(room);
 		}
 	}
-	
 }
