@@ -12,7 +12,6 @@ public class JSONCodes {
 								serverIP			= "SERVER_IP",
 								registryName		= "REGISTRY_NAME",
 								registryPort		= "REGISTRY_PORT",
-								serverPort			= "SERVER_PORT", // TODO remove
 								masterServerPort	= "MASTER_SERVER_PORT",
 								guesserServerPort	= "GUESSER_SERVER_PORT",
 								maxNumberOfGames	= "MAX_NUM_GAMES",
