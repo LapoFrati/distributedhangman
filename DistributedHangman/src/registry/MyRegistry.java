@@ -23,7 +23,6 @@ import org.jasypt.util.password.BasicPasswordEncryptor;
 
 import userAgent.LoginIF;
 import encryption.EncryptionUtil;
-import encryption.PasswordGenerator;
 
 public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	
@@ -37,11 +36,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	private static HashMap< String, UserInfo > 		users;
 	private static LinkedList<UserNotificationIF> 	availableGuessers 		= new LinkedList<UserNotificationIF>();
 	private static LinkedList< WaitingRoom >		waitingRoomsAvailable 	= new LinkedList<WaitingRoom>();
-	private static MulticastAddrGenerator 			multicastAddrGenerator;
-	
 	private static final Object serializationLock 				= new Object();
-	
-	private static PasswordGenerator passwordGenerator 		= new PasswordGenerator();
 	
 	protected MyRegistry(int maxNumberOfWaitingRooms, String baseAddr, String maxAddr) throws FileNotFoundException, IOException, ClassNotFoundException {
 		super();
@@ -73,7 +68,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	    inputStream.close();
 	    
     	users = getRegisterdUserInfo();
-    	multicastAddrGenerator = new MulticastAddrGenerator(baseAddr, maxAddr);
+    	new MulticastAddrGenerator(baseAddr, maxAddr);
 	    
 	}
 
@@ -291,13 +286,8 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		return users;
 	}
 	
-	public static WaitingRoom createNewWaitingRoom(String roomName, int requiredPlayers){
-		WaitingRoomLock roomWaitLock = new WaitingRoomLock();
-		WaitingRoom newWaitingRoom = new WaitingRoom(roomName, requiredPlayers, roomWaitLock);
-		
-		newWaitingRoom.setPassword(passwordGenerator.nextPassword()); // the new room is still not in the list so we can access it without synchronization
-		newWaitingRoom.setMulticast(multicastAddrGenerator.getMulticastAddress());
-		
+	public static void addNewWaitingRoom(String roomName, int requiredPlayers, WaitingRoom newWaitingRoom ){
+
 		synchronized (waitingRoomsAvailable) {
 			waitingRoomsAvailable.add(newWaitingRoom);
 		}
@@ -311,8 +301,6 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
-		
-		return newWaitingRoom;
 	}
 	
 	public static void addAvailableGuesser(String userName){
@@ -339,11 +327,16 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	}
 	
 	public static boolean joinRoom(String roomName){
-		boolean result;
-		WaitingRoom room;
+		boolean result = false;
+		WaitingRoom room = null;
+		UserInfo user = null;
 		synchronized (users) {
-			room = users.get(roomName).getWaitingRoom();
-			result = (room != null ) ? room.addGuesser() : false;
+			if(roomName != null)
+				user = users.get(roomName);
+			if(user != null){
+				room = user.getWaitingRoom();
+				result = (room != null ) ? room.addGuesser() : false;
+			}
 		}
 		return result;
 	}
