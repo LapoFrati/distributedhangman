@@ -1,5 +1,7 @@
 package registry;
 
+import encryption.PasswordGenerator;
+
 public class WaitingRoomLock {
 	private boolean gameStarting, usersNotified;
 	private String roomPassword;
@@ -8,6 +10,8 @@ public class WaitingRoomLock {
 	public WaitingRoomLock(){
 		gameStarting = false;
 		usersNotified = false;
+		roomMulticast = MulticastAddrGenerator.getMulticastAddress();
+		roomPassword = PasswordGenerator.nextPassword();
 	}
 	public void setGameStarting(){
 		gameStarting = true;
@@ -19,14 +23,8 @@ public class WaitingRoomLock {
 		}
 		return gameStarting;
 	}
-	public void setPassword(String pass){
-		this.roomPassword = pass;
-	}
 	public String getPassword(){
 		return this.roomPassword;
-	}
-	public void setMulticast(String multicast){
-		this.roomMulticast = multicast;
 	}
 	public String getMulticast(){
 		return this.roomMulticast;

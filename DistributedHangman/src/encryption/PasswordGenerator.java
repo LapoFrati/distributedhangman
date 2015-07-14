@@ -11,7 +11,7 @@ public class PasswordGenerator {
 	 *  each digit in a base 32 number can encode 5 bits, so 128 is rounded up to the next 
 	 *  multiple of 5. This encoding is compact and efficient, with 5 random bits per character. 
 	 */
-	public String nextPassword() {
+	public static String nextPassword() {
 		return new BigInteger(130, random).toString(32);
 	}
 }

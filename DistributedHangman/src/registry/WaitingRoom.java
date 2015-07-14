@@ -13,14 +13,6 @@ public class WaitingRoom {
 		this.roomWaitLock = roomWait;
 	}
 	
-	public void setPassword(String password){
-		roomWaitLock.setPassword(password);
-	}
-	
-	public void setMulticast(String multicast){
-		roomWaitLock.setMulticast(multicast);
-	}
-	
 	public String getRoomInfo(){
 		return roomName+": "+currentGuessers+"/"+requiredGuessers;
 	}

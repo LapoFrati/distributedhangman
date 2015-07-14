@@ -3,26 +3,26 @@ package registry;
 import messages.ConfigurationException;
 
 public class MulticastAddrGenerator {
-	long baseAddr, maxAddr, range, counter;
+	static long baseAddr, maxAddr, range, counter;
 	
-	public MulticastAddrGenerator(String baseAddr, String maxAddr) {
-		this.baseAddr = ipToLong(baseAddr);
-		this.maxAddr  = ipToLong(maxAddr);
+	public MulticastAddrGenerator(String newBaseAddr, String newMaxAddr) {
+		baseAddr = ipToLong(newBaseAddr);
+		maxAddr  = ipToLong(newMaxAddr);
 		counter = 0;
-		range = this.maxAddr - this.baseAddr;
+		range = maxAddr - baseAddr;
 		
 		if(	range < 0 )
 			throw new ConfigurationException("Base multicast address is bigger than max multicast address.");
 		
-		if(	this.baseAddr < Long.valueOf("3758096384") /* 224.0.0.0 */ 
-				|| this.baseAddr  > Long.valueOf("4026531839") /* 239.255.255.255 */
-				|| this.maxAddr < Long.valueOf("3758096384") 
-				|| this.maxAddr  > Long.valueOf("4026531839"))
+		if(	baseAddr < Long.valueOf("3758096384") /* 224.0.0.0 */ 
+				|| baseAddr  > Long.valueOf("4026531839") /* 239.255.255.255 */
+				|| maxAddr < Long.valueOf("3758096384") 
+				|| maxAddr  > Long.valueOf("4026531839"))
 			throw new ConfigurationException("Multicast addresses out of range.");
 		
 	}
 	
-	public String getMulticastAddress(){
+	public static String getMulticastAddress(){
 		String generatedIP = longToIp(baseAddr + counter);
 			counter = (counter + 1)%(range+1);
 		return generatedIP;
@@ -39,7 +39,7 @@ public class MulticastAddrGenerator {
         return result & 0xFFFFFFFF;
     }
 
-    private String longToIp(long ip) {
+    private static String longToIp(long ip) {
         StringBuilder sb = new StringBuilder(15);
 
         for (int i = 0; i < 4; i++) {
