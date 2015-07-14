@@ -1,50 +1,37 @@
 package registry;
 
-import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.Socket;
 
-import org.json.simple.JSONObject;
-
-import messages.JSONCodes;
-
 public class ConnectionTimeoutThread extends Thread {
-	Socket socketToBeClosed;
+	Socket socket;
 	long currentTime, milliSecondsToSleep;
-	Thread threadToWakeup;
+	PrintWriter out;
 	public volatile boolean disableInterrupt = false;
+	AbstractGameCreation gameCreation;
 	
-	public ConnectionTimeoutThread(Socket socket, long secondsToSleep, Thread thread) {
-		this.socketToBeClosed = socket;
+	public ConnectionTimeoutThread(PrintWriter out, Socket socket, long secondsToSleep,  AbstractGameCreation gameCreation) {
+		this.socket = socket;
 		this.currentTime = System.currentTimeMillis(); 
 		this.milliSecondsToSleep = secondsToSleep*1000;
-		this.threadToWakeup = thread;
+		this.gameCreation = gameCreation;
+		this.out = out;
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Override
 	public void run() {
-		JSONObject closingJSON = new JSONObject();
-		closingJSON.put(JSONCodes.message, JSONCodes.connectionClosed);
-		byte[] closingMessage = closingJSON.toJSONString().getBytes();
-		
-			try {
-				Thread.sleep(milliSecondsToSleep);
-			} catch (InterruptedException e){}
-		
-		if(!disableInterrupt)
-			threadToWakeup.interrupt();
-		
 		try {
-			socketToBeClosed.getOutputStream().write(closingMessage);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
+			Thread.sleep(milliSecondsToSleep);
+		} catch (InterruptedException e){ }
 		
-		try {
-			socketToBeClosed.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		if(!disableInterrupt){
+			gameCreation.notifyTimeout();
 		}
+		System.out.println("ConnectionTimeout terminated");
 	}
 	
+	public void stopTimeout(){
+		disableInterrupt = true;
+		interrupt();
+	}
 }
