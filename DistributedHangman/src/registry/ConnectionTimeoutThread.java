@@ -27,7 +27,6 @@ public class ConnectionTimeoutThread extends Thread {
 		if(!disableInterrupt){
 			gameCreation.notifyTimeout();
 		}
-		System.out.println("ConnectionTimeout terminated");
 	}
 	
 	public void stopTimeout(){

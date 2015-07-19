@@ -17,26 +17,22 @@ public class ExitListenerThread extends Thread {
 	}
 	
 	public void run(){
-		do{
-			try {
-				messageReceived = in.readLine();
-			} catch (IOException e) {
-				break;
+		try{
+			while(exitReceived == false){
+				try{
+					if(in.ready()){
+						if(in.readLine().matches("exit")){
+							exitReceived = true;
+							gameCreation.notifyExit();
+						}
+						else
+							System.out.println("type \"exit\" to quit.");
+						
+					} else {
+						Thread.sleep(200);
+					}
+				}catch (IOException e){}
 			}
-			if(messageReceived != null && !disableListener){
-				if(messageReceived.matches("exit")){
-					System.out.println("Exit Request Received");
-					exitReceived = true;
-					gameCreation.notifyExit();
-				}
-			}
-		}while(exitReceived == false);
-		System.out.println("ExitListener Terminated");
-	}
-	
-	public void stopListener(){
-		disableListener = true;
-		exitReceived = true;
-		try { in.close(); } catch (IOException e) { }
+		} catch (InterruptedException e){ /* Terminating ExitListener */ }
 	}
 }

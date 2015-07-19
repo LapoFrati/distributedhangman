@@ -6,6 +6,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+import messages.JSONCodes;
+
+import org.json.simple.JSONObject;
+
 public abstract class AbstractGameCreation extends Thread {
 	private boolean exitListenerStopped, 
 					connectionTimeoutStopped;
@@ -15,8 +19,12 @@ public abstract class AbstractGameCreation extends Thread {
 	protected BufferedReader in;
 	protected Socket socket;
 	protected long timeout;
+	protected JSONObject closingJSON;
+	protected boolean exitReceived, timeoutExpired;
 	
 	
+	
+	@SuppressWarnings("unchecked")
 	public AbstractGameCreation(Socket socket, long timeout){
 		this.socket = socket;
 		this.timeout = timeout;
@@ -32,8 +40,12 @@ public abstract class AbstractGameCreation extends Thread {
 		}
 		exitListenerStopped = false;
 		connectionTimeoutStopped = false;
+		exitReceived = false;
+		timeoutExpired = false;
 		exitListener = new ExitListenerThread(this, in);
 		connectionTimeout = new ConnectionTimeoutThread(out, socket, timeout, this);
+		closingJSON = new JSONObject();
+		closingJSON.put(JSONCodes.message, JSONCodes.connectionClosed);
 	}
 	
 	protected void stopTimeout(){
@@ -46,12 +58,11 @@ public abstract class AbstractGameCreation extends Thread {
 	protected void stopListener(){
 		if(exitListenerStopped == false){
 			exitListenerStopped = true;
-			exitListener.stopListener();
+			exitListener.interrupt();
 		}
 	}
 	
 	public abstract void run();
 	public abstract void notifyExit();
 	public abstract void notifyTimeout();
-	public abstract void checkState();
 }
