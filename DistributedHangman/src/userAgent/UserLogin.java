@@ -84,8 +84,12 @@ public class UserLogin {
     	}while(!role.matches("m|g"));
 		
 		switch(role){
-			case "g": new GuesserLauncher().startGuesser(stdIn, role, serverIP, guesserServerPort);
-			case "m": new MasterLauncher().startMaster(stdIn, role, serverIP, masterServerPort);
+			case "g":	new GuesserLauncher(stdIn, userName, serverIP, guesserServerPort).startGuesser();
+						break;
+			case "m": 	new MasterLauncher(stdIn, userName, serverIP, masterServerPort).startMaster();
+						break;
 		}
+		reg.logOut(userName);
+		System.out.println(userName + " logged out.");
 	}
 }

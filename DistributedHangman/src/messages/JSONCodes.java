@@ -5,8 +5,7 @@ public class JSONCodes {
 									master 				= "MASTER",
 									guesser				= "GUESSER",
 								
-								roomName			= "ROOMNAME",
-								numberOfGuessers	= "NUMBER_OF_GUESSERS",
+								
 								
 								// CONFIGURATION INFO
 								serverIP			= "SERVER_IP",
@@ -17,25 +16,24 @@ public class JSONCodes {
 								maxNumberOfGames	= "MAX_NUM_GAMES",
 								baseMulticastAddr	= "BASE_MULT_ADDR",
 								maxMulticastAddr	= "MAX_MULT_ADDR",
+								timeoutLength		= "TIMEOUT_LEN",
 								
 								// GAME CREATION
-								connectionClosed 	= "SOCKET_CLOSED",
-								waitingRoomsFull	= "WAITINGROOMS_FULL",
-								newRoomCreated		= "NEW_ROOM_CREATED",
-								roomJoined			= "ROOM_JOINED",
-								guesserJoinError	= "GUESSER_ERROR",
-								roomClosed			= "ROOM_CLOSED",
-								message				= "MSG",
-								userName			= "USERNAME",
-								gameStarting		= "GAME_STARTING",
-								roomMulticast		= "ROOM_MULTICAST_ADDR",
-								roomPassword		= "ROOM_PASSWORD",
-								cleanupCompleted	= "CLEANUP_COMPLETED",
-								timeoutLength		= "TIMEOUT_LEN",
+								roomName			= "ROOMNAME", // used by the master to create a waiting room
+								numberOfGuessers	= "NUMBER_OF_GUESSERS",
+								
+								message				= "MSG", // field that regulates the communication between client/server during the game creation
+									connectionClosed 	= "SOCKET_CLOSED",	// server timeout expired
+									guesserJoinError	= "GUESSER_ERROR",	// room was full or name was wrong
+									roomJoined			= "ROOM_JOINED",	// notify having joined the room
+									roomClosed			= "ROOM_CLOSED",	// master left
+									gameStarting		= "GAME_STARTING",
+										roomMulticast		= "ROOM_MULTICAST_ADDR",
+										roomPassword		= "ROOM_PASSWORD",
+								
 								
 								// GAME MANAGEMENT
 								guesserTimeout		= "GUESSER_TIMEOUT",
-
 								ack					= "ACK",
 								word				= "WORD",
 								guess				= "GUESS",
