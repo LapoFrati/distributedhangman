@@ -28,7 +28,7 @@ public class Test {
 		MulticastAddrGenerator testGenerator = new MulticastAddrGenerator("224.0.0.0", "224.0.0.4");
 		System.out.println(maxMulticastAddr - baseMulticastAddr);
 		for(int i = 0; i < 10; i++){
-			System.out.println(testGenerator.getMulticastAddress());
+			System.out.println(MulticastAddrGenerator.getMulticastAddress());
 		}
 		
 		System.out.println(nextPassword(random));
