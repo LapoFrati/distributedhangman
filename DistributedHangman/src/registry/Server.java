@@ -25,7 +25,7 @@ public class Server {
 			timeoutLength			= Integer.valueOf(config.getJsonField(JSONCodes.timeoutLength));
 			
 		MasterConnectionListener masterConnectionListener 		= new MasterConnectionListener(masterServerPort, timeoutLength);
-	    GuesserConnectionListener guesserConnectcionListener 	= new GuesserConnectionListener(guesserServerPort, timeoutLength);
+	    GuesserConnectionListener guesserConnectionListener 	= new GuesserConnectionListener(guesserServerPort, timeoutLength);
 
     	
     	// Start registry for RMI
@@ -35,7 +35,7 @@ public class Server {
         reg.rebind(registryName, myLogin);
         
         masterConnectionListener.start();
-        guesserConnectcionListener.start();
+        guesserConnectionListener.start();
         
         System.out.println("Server Listening");
     }

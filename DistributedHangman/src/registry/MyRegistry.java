@@ -105,7 +105,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		synchronized (users) {
 			userInfo = users.get(userName); // Fetch the user's info	
 			if(userInfo.isLoggedIn()){
-				result = false; // the user is already logged in.
+				result = true; // the user is already logged in.
 				((UserNotificationIF)callback).notifyUser("User already logged in!"); // Notify that the user is already logged in.
 			}else{
 				// Check if the passwords match using jasypt's utilities
@@ -331,11 +331,12 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		WaitingRoom room = null;
 		UserInfo user = null;
 		synchronized (users) {
-			if(roomName != null)
+			if(roomName != null){
 				user = users.get(roomName);
-			if(user != null){
-				room = user.getWaitingRoom();
-				result = (room != null ) ? room.addGuesser() : false;
+				if(user != null){
+					room = user.getWaitingRoom();
+					result = (room != null ) ? room.addGuesser() : false;
+				}
 			}
 		}
 		return result;
