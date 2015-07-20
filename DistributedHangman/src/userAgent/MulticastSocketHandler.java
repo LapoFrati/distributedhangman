@@ -28,8 +28,8 @@ public class MulticastSocketHandler {
 		this.port = port;
 		this.role = role;
 		socket = new MulticastSocket(port);
+		socket.setSoTimeout(timeout*1000);
 		socket.joinGroup(group);
-		socket.setSoTimeout(timeout*1000); // set .receive()'s timeout
 		textEncryptor = new BasicTextEncryptor();
 		textEncryptor.setPassword(password);
 	}
@@ -58,12 +58,12 @@ public class MulticastSocketHandler {
 				
 				socket.receive(packet);
 				
-			} catch(SocketTimeoutException e){
-				System.out.println("Receive's timeout expired. Trying again.");
-				result = null;
-				break;
 			} catch(SocketException e){
 				// socket has been closed
+				result = null;
+				break;
+			} catch (SocketTimeoutException e){
+				// the long timeout has expired
 				result = null;
 				break;
 			}
