@@ -1,9 +1,7 @@
 package messages;
 
 public class JSONCodes {
-	public static final String 	role 				= "ROLE",
-									master 				= "MASTER",
-									guesser				= "GUESSER",
+	public static final String 	
 								
 								
 								
@@ -42,12 +40,20 @@ public class JSONCodes {
 								replyTo				= "REPLY_TO",
 								guesserLeft         = "GUESSER_LEFT", // boolean field
 								
+								role 				= "ROLE",
+									master 				= "MASTER",
+									guesser				= "GUESSER",
+									
+								wordHint 			= "WORD_HINT", 	// fields used in the initialization message
+								attempts			= "ATTEMPTS",	// fields used in the initialization message
+								
 								gameStatus			= "GAME_STATUS",
 									correctGuess		= "CORRECT_GUESS",
 									wrongGuess			= "WRONG_GUESS",
 									repeatedGuess		= "REPEATED_GUESS",
 									masterLost			= "MASTER_LOST",
 									masterWon			= "MASTER_WON",
+									initialization		= "INITIALIZATION",
 									masterLeft			= "MASTER_LEFT";
 								
 	

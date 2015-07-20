@@ -18,14 +18,23 @@ public class GuesserReceiver {
 		this.userName = userName;
 		this.password = password;
 		guessACK = new GuessACK();
-		handler = new MulticastSocketHandler(InetAddress.getByName(multicastAddr), 4444, password,30, JSONCodes.guesser);
+		handler = new MulticastSocketHandler(InetAddress.getByName(multicastAddr), 4444, password,300, JSONCodes.guesser); // 5 mins timeout
 		guesserSender = new GuesserSender(userName, handler, guessACK, 30);
-		guesserSender.start();
 	}
 	
 	public void startGame() throws IOException{
 		JSONObject messageFromMaster;
 		String word, guessesSoFar;
+		
+		
+		System.out.println("Initializing game. Please wait.");
+		try {
+			Thread.sleep(1000); // wait one second to ensure the master has time to send its initialization message
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		guesserSender.start();
 		
 		gameLoop:
 		while(true){
@@ -48,6 +57,9 @@ public class GuesserReceiver {
 												System.out.println("The word has been guessed: "+word+". Guessers win the game.");
 												guesserSender.terminate();
 												break gameLoop;
+				case JSONCodes.initialization:	System.out.println("["+messageFromMaster.get(JSONCodes.wordHint)+"]");
+												System.out.println("Allowed attempts: "+messageFromMaster.get(JSONCodes.attempts));
+												continue gameLoop;
 				default:						break; // non game-ending status received, continue with the checks		
 			}
 			

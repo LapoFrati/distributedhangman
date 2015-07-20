@@ -13,7 +13,7 @@ public class MasterWorker {
 	private MasterTerminationThread terminationThread;
 	
 	public MasterWorker(String password, String multicastAddr, String targetword, int numberOfAttempts, int numberOfGuessers) throws IOException{
-		handler = new MulticastSocketHandler(InetAddress.getByName(multicastAddr), 4444, password, 300, JSONCodes.master);
+		handler = new MulticastSocketHandler(InetAddress.getByName(multicastAddr), 4444, password, 300, JSONCodes.master); // 5 mins timeout
 		this.targetWord = new TargetWord(targetword);
 		this.numberOfAttempts = numberOfAttempts;
 		this.numberOfGuessers = numberOfGuessers;
@@ -23,14 +23,21 @@ public class MasterWorker {
 	
 	@SuppressWarnings("unchecked")
 	public void startGame() throws IOException{
-		JSONObject messageToGuessers, receivedMessage;
+		JSONObject messageToGuessers, receivedMessage, initializationMessage;
 		boolean gameFinished = false, guesserLeft;
 		String replyTo, receivedGuess;
 		char receivedCh;
 		
-		// initialize role field
 		messageToGuessers = new JSONObject();
 		messageToGuessers.put(JSONCodes.role, JSONCodes.master);
+		
+		initializationMessage = new JSONObject();
+		initializationMessage.put(JSONCodes.role, JSONCodes.master);
+		initializationMessage.put(JSONCodes.gameStatus, JSONCodes.initialization);
+		initializationMessage.put(JSONCodes.wordHint, targetWord.stringSoFar());
+		initializationMessage.put(JSONCodes.attempts, numberOfAttempts);
+		handler.send(initializationMessage);
+		System.out.println("Initialization message sent");
 		
 		gameLoop:
 		while(!gameFinished){
