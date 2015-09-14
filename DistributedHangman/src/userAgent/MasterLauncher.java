@@ -11,13 +11,14 @@ import org.json.simple.parser.ParseException;
 
 public class MasterLauncher extends AbstractUserLauncher{
 	BufferedReader stdIn;
-	String userName;
+	String userName, masterInterface;
 	boolean exitReceived;
 	
-	public MasterLauncher(BufferedReader stdIn, String userName, String serverIP, String masterServerPort) {
+	public MasterLauncher(BufferedReader stdIn, String userName, String serverIP, String masterServerPort, String masterInterface) {
 		super(stdIn, serverIP, masterServerPort);
 		this.stdIn = stdIn;
 		this.userName = userName;
+		this.masterInterface = masterInterface;
 		exitReceived = false;
 	}
 
@@ -100,12 +101,15 @@ public class MasterLauncher extends AbstractUserLauncher{
     		System.out.println(password + "-" + multicast);
     		targetword = getWord();
 			numberOfAttempts = getAttempts();
-			MasterWorker master = new MasterWorker(password, multicast, targetword, numberOfAttempts, numberOfGuessers);
+			MasterWorker master = new MasterWorker(password, multicast, targetword, numberOfAttempts, numberOfGuessers, masterInterface);
 	    	master.startGame();
 		}  
 	}
     
-
+	/**
+	 * Method used to get a legal word from the master.
+	 * @return the word to guess.
+	 */
 	public String getWord(){
     	String targetWord = "", reply = "";
     	boolean proceed = false;
@@ -141,7 +145,11 @@ public class MasterLauncher extends AbstractUserLauncher{
 		
 		return targetWord;
     }
-        
+    
+	/**
+	 * Method used to get the number of attempts allowed.
+	 * @return the number of attempts allowed
+	 */
     public int getAttempts(){
     	Boolean attemptsOk = false;
     	int numberOfAttempts = 0;

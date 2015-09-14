@@ -14,11 +14,11 @@ public class GuesserReceiver {
 	GuesserSender guesserSender;
 	GuessACK guessACK;
 	
-	public GuesserReceiver(String userName, String password, String multicastAddr) throws UnknownHostException, IOException{
+	public GuesserReceiver(String userName, String password, String multicastAddr, String guesserInterface) throws UnknownHostException, IOException{
 		this.userName = userName;
 		this.password = password;
 		guessACK = new GuessACK();
-		handler = new MulticastSocketHandler(InetAddress.getByName(multicastAddr), 4444, password,300, JSONCodes.guesser); // 5 mins timeout
+		handler = new MulticastSocketHandler(InetAddress.getByName(multicastAddr), 4444, password,300, JSONCodes.guesser, guesserInterface); // 5 mins timeout
 		guesserSender = new GuesserSender(userName, handler, guessACK, 30);
 	}
 	
@@ -28,14 +28,7 @@ public class GuesserReceiver {
 		
 		
 		System.out.println("Initializing game. Please wait.");
-		try {
-			Thread.sleep(1000); // wait one second to ensure the master has time to send its initialization message
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		guesserSender.start();
-		
+
 		gameLoop:
 		while(true){
 			
@@ -59,6 +52,7 @@ public class GuesserReceiver {
 												break gameLoop;
 				case JSONCodes.initialization:	System.out.println("["+messageFromMaster.get(JSONCodes.wordHint)+"]");
 												System.out.println("Allowed attempts: "+messageFromMaster.get(JSONCodes.attempts));
+												guesserSender.start();
 												continue gameLoop;
 				default:						break; // non game-ending status received, continue with the checks		
 			}

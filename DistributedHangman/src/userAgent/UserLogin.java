@@ -33,6 +33,8 @@ public class UserLogin {
 				registryPort 	= config.getJsonField(JSONCodes.registryPort),
 				masterServerPort   	= config.getJsonField(JSONCodes.masterServerPort),
 				guesserServerPort 	= config.getJsonField(JSONCodes.guesserServerPort),
+				masterInterface		= config.getJsonField(JSONCodes.masterInterface),
+				guesserInterface		= config.getJsonField(JSONCodes.guesserInterface),
 				password		= "",
 				role			= "";
 		boolean loginError 	= false;
@@ -84,12 +86,13 @@ public class UserLogin {
     	}while(!role.matches("m|g"));
 		
 		switch(role){
-			case "g":	new GuesserLauncher(stdIn, userName, serverIP, guesserServerPort).startGuesser();
+			case "g":	new GuesserLauncher(stdIn, userName, serverIP, guesserServerPort, guesserInterface).startGuesser();
 						break;
-			case "m": 	new MasterLauncher(stdIn, userName, serverIP, masterServerPort).startMaster();
+			case "m": 	new MasterLauncher(stdIn, userName, serverIP, masterServerPort, masterInterface).startMaster();
 						break;
 		}
 		reg.logOut(userName);
 		System.out.println(userName + " logged out.");
+		System.exit(0);
 	}
 }

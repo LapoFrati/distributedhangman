@@ -12,6 +12,12 @@ import org.json.simple.parser.ParseException;
 public class ReadConfigurationFile {
 
 		JSONObject config;
+		
+		/**
+		 * Method used to read the configuration file.
+		 * @param file
+		 * @throws IOException (Checks if the required file exists)
+		 */
 		public ReadConfigurationFile( String file ) throws IOException{
 			String json;
 			try (BufferedReader br = new BufferedReader(new FileReader(file))) {
@@ -29,6 +35,11 @@ public class ReadConfigurationFile {
 			}
 		}
 		
+		/**
+		 * Method that returns the content of specified field
+		 * @param field
+		 * @return the requested field's content
+		 */
 		public String getJsonField(String field){
 			String requestedField;
 			

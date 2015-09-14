@@ -29,6 +29,9 @@ public class ConnectionTimeoutThread extends Thread {
 		}
 	}
 	
+	/**
+	 * Method used to stop the timeout using an interrupt.
+	 */
 	public void stopTimeout(){
 		disableInterrupt = true;
 		interrupt();

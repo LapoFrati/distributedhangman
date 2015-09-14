@@ -12,13 +12,14 @@ import org.json.simple.parser.ParseException;
 
 public class GuesserLauncher extends AbstractUserLauncher{
 	BufferedReader stdIn;
-	String userName;
+	String userName, guesserInterface;
 	boolean exitReceived;
 	
-	public GuesserLauncher(BufferedReader stdIn, String userName,String serverIP, String masterServerPort) {
+	public GuesserLauncher(BufferedReader stdIn, String userName,String serverIP, String masterServerPort, String guesserInterface) {
 		super(stdIn, serverIP, masterServerPort);
 		this.stdIn = stdIn;
 		this.userName = userName;
+		this.guesserInterface = guesserInterface;
 		exitReceived = false;
 	}
 
@@ -90,7 +91,7 @@ public class GuesserLauncher extends AbstractUserLauncher{
 		
 		if(gameStarting && !exitReceived){
 			System.out.println(password + "-" + multicast);
-			GuesserReceiver guesser = new GuesserReceiver(userName, password, multicast);
+			GuesserReceiver guesser = new GuesserReceiver(userName, password, multicast, guesserInterface);
 			guesser.startGame();
 		}
 	}

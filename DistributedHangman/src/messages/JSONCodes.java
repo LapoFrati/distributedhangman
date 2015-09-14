@@ -15,6 +15,8 @@ public class JSONCodes {
 								baseMulticastAddr	= "BASE_MULT_ADDR",
 								maxMulticastAddr	= "MAX_MULT_ADDR",
 								timeoutLength		= "TIMEOUT_LEN",
+								guesserInterface	= "USER_INT",
+								masterInterface		= "MASTER_INT",
 								
 								// GAME CREATION
 								roomName			= "ROOMNAME", // used by the master to create a waiting room

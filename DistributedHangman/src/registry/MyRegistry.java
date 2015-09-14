@@ -134,16 +134,17 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	 * @throws RemoteException
 	 * @throws ServerNotActiveException
 	 */
-	public synchronized boolean registerNewUser(String userName, byte[] text) throws ServerNotActiveException, FileNotFoundException, ClassNotFoundException, IOException {
+	public boolean registerNewUser(String userName, byte[] text) throws ServerNotActiveException, FileNotFoundException, ClassNotFoundException, IOException {
 		boolean result = false;
 		
 		synchronized (users) {
 			if( !users.containsKey(userName) ){
+				System.out.println("Registering new user: "+userName);
 				String password = EncryptionUtil.decrypt(text, myPrivKey); // The user's password is decrypted using the server's private key
 				UserInfo newUserInfo = new UserInfo(passwordEncryptor.encryptPassword(password));
 				users.put(userName, newUserInfo); // the user's password is digested using jasypt's utilities
-				System.out.println("Registerd new user: "+userName);
 				saveUsers(userName, newUserInfo.getEncryptedPassword());
+				System.out.println("New user "+userName+" registered.");
 				result = true;
 			} else {
 				System.out.println("Username already in use!");
@@ -179,7 +180,7 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		
 		// Handle master leaving and room closure.
 		
-		//UnicastRemoteObject.unexportObject(this, true);
+		UnicastRemoteObject.unexportObject(this, true);
 	}
 
 	public PublicKey getPublicKey() throws RemoteException {
@@ -236,23 +237,29 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	 */
 	public void saveUsers(String userName, String encryptedPassword) throws FileNotFoundException, IOException, ClassNotFoundException{
 		List<Pair> retrievedInfo;
+		File file = new File("users.data");
+	    File file2 = new File("users.data.backup");
+	    
 		synchronized (serializationLock) {
-			ObjectInputStream input = new ObjectInputStream( new FileInputStream("users.data"));
-			retrievedInfo = (List<Pair>) input.readObject();
-			input.close();
+			if(file.exists()){ // retrieve the list of pairs or create a new one
+				ObjectInputStream input = new ObjectInputStream( new FileInputStream("users.data"));
+				retrievedInfo = (List<Pair>) input.readObject();
+				input.close();
+			} else
+				retrievedInfo = new LinkedList<Pair>();
 		
 			retrievedInfo.add(new Pair(userName, encryptedPassword));
-			
-			// File with old name
-		    File file = new File("users.data");
-		    // File with new name
-			Files.delete(Paths.get("users.data.backup")); 
-		    File file2 = new File("users.data.backup");
+		    
+		    if(file.exists()){ // if there was already a file saved, move the old file to backup.
+			    // if there was already a backup delete the old one.
+		    	if(file2.exists())
+		    		Files.delete(Paths.get("users.data.backup")); 
 
-		    // Rename file (or directory)
-		    boolean success = file.renameTo(file2);
-		    if (!success) {
-		        // File was not successfully renamed
+			    // Rename file (or directory)
+			    boolean success = file.renameTo(file2);
+			    if (!success) {
+			        // File was not successfully renamed
+			    }
 		    }
 			
 			ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream("users.data"));
@@ -273,19 +280,28 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 	public HashMap<String,UserInfo> getRegisterdUserInfo() throws FileNotFoundException, IOException, ClassNotFoundException{
 		List<Pair> retrievedInfo;
 		HashMap<String, UserInfo> users = new HashMap<String, UserInfo>();
+		File data = new File("users.data");
 		
-		ObjectInputStream input = new ObjectInputStream( new FileInputStream("users.data"));
-		retrievedInfo = (List<Pair>) input.readObject();
-		input.close();
-		System.out.println("Registered users: ");
-		for( Pair pair : retrievedInfo){
-			System.out.println(pair.getUserName());
-			users.put(pair.getUserName(), new UserInfo(pair.getEncryptedPassword()));
+		if(data.exists()){
+			ObjectInputStream input = new ObjectInputStream( new FileInputStream("users.data"));
+			retrievedInfo = (List<Pair>) input.readObject();
+			input.close();
+			System.out.println("Registered users: ");
+			for( Pair pair : retrievedInfo){
+				System.out.println(pair.getUserName());
+				users.put(pair.getUserName(), new UserInfo(pair.getEncryptedPassword()));
+			}
 		}
 		
 		return users;
 	}
 	
+	/**
+	 * Method that adds a new waiting room to the list of available ones and notifies the user of this event. 
+	 * @param roomName
+	 * @param requiredPlayers
+	 * @param newWaitingRoom
+	 */
 	public static void addNewWaitingRoom(String roomName, int requiredPlayers, WaitingRoom newWaitingRoom ){
 
 		synchronized (waitingRoomsAvailable) {
@@ -303,6 +319,10 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		}
 	}
 	
+	/**
+	 * Method used to add a new guess to the list of guesser that need to be notified of available rooms.
+	 * @param userName
+	 */
 	public static void addAvailableGuesser(String userName){
 		UserNotificationIF callback;
 		synchronized(users){
@@ -314,6 +334,10 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		}
 	}
 	
+	/**
+	 * Method used to remove a new guess from the list of guesser that need to be notified of available rooms.
+	 * @param userName
+	 */
 	public static void removeAvailableGuesser(String userName){
 		UserNotificationIF callback;
 		
@@ -326,6 +350,11 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		}
 	}
 	
+	/**
+	 * Method used to join a waiting room.
+	 * @param roomName
+	 * @return false if the room was already full, true otherwise.
+	 */
 	public static boolean joinRoom(String roomName){
 		boolean result = false;
 		WaitingRoom room = null;
@@ -342,12 +371,21 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		return result;
 	}
 	
+	/**
+	 * Method used to leave a waiting room.
+	 * @param roomName
+	 */
 	public static void leaveRoom(String roomName){
 		synchronized(users){
 			users.get(roomName).getWaitingRoom().removeGuesser();
 		}
 	}
 	
+	/**
+	 * Method used to retrieve the lock associated to a waiting room.
+	 * @param roomName
+	 * @return the lock belonging to the waiting room with name "roomName"
+	 */
 	public static WaitingRoomLock getRoomWaitLock(String roomName){
 		WaitingRoomLock lock;
 		synchronized(users){
@@ -356,6 +394,11 @@ public class MyRegistry extends UnicastRemoteObject implements LoginIF{
 		return lock;
 	}
 	
+	/**
+	 * Methods used to close a waiting room.
+	 * @param user
+	 * @param room
+	 */
 	public static void closeWaitingRoom(String user, WaitingRoom room){
 		
 		synchronized (users) { // set the room to null to stop new users from joining it

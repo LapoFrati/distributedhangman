@@ -48,15 +48,21 @@ public abstract class AbstractGameCreation extends Thread {
 		closingJSON.put(JSONCodes.message, JSONCodes.connectionClosed);
 	}
 	
+	/**
+	 * Method used to stop the timeout and updating the current state
+	 */
 	protected void stopTimeout(){
-		if(connectionTimeoutStopped == false){
+		if(connectionTimeoutStopped == false){ // avoid repeated calls
 			connectionTimeoutStopped = true;
 			connectionTimeout.stopTimeout();
 		}
 	}
 	
+	/**
+	 * Method used to stop the listener and updating the current state
+	 */
 	protected void stopListener(){
-		if(exitListenerStopped == false){
+		if(exitListenerStopped == false){ // avoid repeated calls
 			exitListenerStopped = true;
 			exitListener.interrupt();
 		}

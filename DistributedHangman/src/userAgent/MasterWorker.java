@@ -12,8 +12,8 @@ public class MasterWorker {
 	private int errors, numberOfAttempts, numberOfGuessers;
 	private MasterTerminationThread terminationThread;
 	
-	public MasterWorker(String password, String multicastAddr, String targetword, int numberOfAttempts, int numberOfGuessers) throws IOException{
-		handler = new MulticastSocketHandler(InetAddress.getByName(multicastAddr), 4444, password, 300, JSONCodes.master); // 5 mins timeout
+	public MasterWorker(String password, String multicastAddr, String targetword, int numberOfAttempts, int numberOfGuessers, String masterInterface) throws IOException{
+		handler = new MulticastSocketHandler(InetAddress.getByName(multicastAddr), 4444, password, 300, JSONCodes.master, masterInterface); // 5 mins timeout
 		this.targetWord = new TargetWord(targetword);
 		this.numberOfAttempts = numberOfAttempts;
 		this.numberOfGuessers = numberOfGuessers;
@@ -84,16 +84,20 @@ public class MasterWorker {
 						if(targetWord.has(receivedCh)){
 							if(targetWord.isGameFinished()){
 								messageToGuessers.put(JSONCodes.gameStatus, JSONCodes.masterLost);
+								System.out.println("You lose.");
 								gameFinished = true;
 								terminationThread.terminate();
 							}else{
 									messageToGuessers.put(JSONCodes.gameStatus, JSONCodes.correctGuess);
 									messageToGuessers.put(JSONCodes.previousGuesses, targetWord.guessesSoFar());
+									System.out.println(targetWord.stringSoFar() + " " + targetWord.stringSoFar());
 								}
 						}else{
-							System.out.println(++errors);
+							errors++;
+							System.out.println("Errors: " + errors);
 							if(errors >= numberOfAttempts){
 								messageToGuessers.put(JSONCodes.gameStatus, JSONCodes.masterWon);
+								System.out.println("You win.");
 								gameFinished = true; 
 								terminationThread.terminate();
 							}else{

@@ -27,6 +27,10 @@ public class WaitingRoom {
 		}
 	}
 	
+	/**
+	 * Method that adds a new guesser to the room. If the guesser was the last one needed it sets the room's state to "gameStarting" 
+	 * @return true if the room was not full, false otherwise. 
+	 */
 	public boolean addGuesser(){
 		boolean result;
 		

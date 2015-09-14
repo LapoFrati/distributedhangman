@@ -100,7 +100,7 @@ public class GuesserCreationThread extends AbstractGameCreation{
 								}
 								if( timeoutExpired == true ){
 									stopListener();
-									out.println(closingJSON);
+									out.println(closingJSON); //
 								}
 								MyRegistry.leaveRoom(roomName);
 								MyRegistry.removeAvailableGuesser(userName);
@@ -122,7 +122,7 @@ public class GuesserCreationThread extends AbstractGameCreation{
 						messageToClient.put(JSONCodes.roomMulticast, multicastAddr);
 						out.println(messageToClient); // send info to start game
 					} else {
-						// 5.2 or 5.3 (masterLeft or timeoutExpired)
+						// 5.2 (masterLeft)
 						messageToClient.put(JSONCodes.message, JSONCodes.roomClosed);
 						out.println(messageToClient);
 					}
@@ -142,12 +142,18 @@ public class GuesserCreationThread extends AbstractGameCreation{
         }
 	}
 	
+	/**
+	 * Method used to notify a new exit request.
+	 */
 	public synchronized void notifyExit() {
 		exitReceived = true;
 		toInterrupt.interrupt();
 		
 	}
-
+	
+	/**
+	 * Method used to notify the timeout's expiration.
+	 */
 	public synchronized void notifyTimeout() {
 		timeoutExpired = true;
 		toInterrupt.interrupt();

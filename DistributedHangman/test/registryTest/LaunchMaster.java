@@ -10,7 +10,7 @@ import userAgent.UserLogin;
 
 public class LaunchMaster {
 	public static void main(String[] args) throws ClassNotFoundException, IOException, NotBoundException, ServerNotActiveException {
-		String inputString = "Lapo\nFrati\nm\n2\n";
+		String inputString = "Lapo\nFrati\nm\n2\ntest\n";
 		InputStream inStream = new ByteArrayInputStream(inputString.getBytes());
 		System.setIn(inStream);
 		UserLogin.main(null);

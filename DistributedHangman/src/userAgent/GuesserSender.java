@@ -84,6 +84,10 @@ public class GuesserSender extends Thread{
 		
 	}
 	
+	/**
+	 * Method that get a properly formatted guess from the user.
+	 * @return the properly formatted guess
+	 */
 	protected String getGuess(){
 		String userInput = null;
 		String result = "-";
@@ -119,6 +123,10 @@ public class GuesserSender extends Thread{
 		return result;
 	}
 	
+	/**
+	 * Method used to terminate the thread.
+	 * @throws IOException
+	 */
 	public void terminate() throws IOException{
 		keepGoing = false;
 		// the sender thread might be getting a new guess or waiting for an ack. We cover both cases

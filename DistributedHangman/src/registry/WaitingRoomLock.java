@@ -13,9 +13,16 @@ public class WaitingRoomLock {
 		roomMulticast = MulticastAddrGenerator.getMulticastAddress();
 		roomPassword = PasswordGenerator.nextPassword();
 	}
+	
+	
 	public void setGameStarting(){
 		gameStarting = true;
 	}
+	
+	/**
+	 * Method used to check if the game is starting. If it is it notifies all the waiting users.
+	 * @return true if the game is starting, false otherwise.
+	 */
 	public boolean checkIfGameStarting(){
 		if(gameStarting && !usersNotified){
 			usersNotified = true;

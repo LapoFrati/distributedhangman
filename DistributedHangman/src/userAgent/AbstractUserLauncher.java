@@ -35,15 +35,21 @@ public abstract class AbstractUserLauncher {
 		listenerStopped = true;
 	}
 	
+	/**
+	 * Methods that stops the exit listener
+	 */
 	protected void stopListener(){
-		if(listenerStopped == false){
+		if(listenerStopped == false){ // prevents multiple interruptions
 			listenerStopped = true;
 			exitListener.interrupt();
 		}
 	}
 	
+	/**
+	 * Method that starts the exit listener
+	 */
 	protected void startListener(){
-		if(listenerStopped == true){
+		if(listenerStopped == true){ //prevents multiple initializations
 			listenerStopped = false;
 			exitListener.start();
 		}	}

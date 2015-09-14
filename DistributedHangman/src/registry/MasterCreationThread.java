@@ -67,7 +67,6 @@ public class MasterCreationThread extends AbstractGameCreation{
 				try {
 					roomWaitLock.wait();
 				} catch (InterruptedException e) {
-					System.out.println("interrupt received");
 					// something happened, either exitReceived or timeoutExpired, stop the other one
 					if( exitReceived == true ){
 						stopTimeout();
@@ -112,11 +111,17 @@ public class MasterCreationThread extends AbstractGameCreation{
         }
 	}
 	
+	/**
+	 * Method used to notify a new exit request.
+	 */
 	public synchronized void notifyExit() {
 		exitReceived = true;
 		toInterrupt.interrupt();
 	}
-
+	
+	/**
+	 * Method used to notify the timeout's expiration. 
+	 */
 	public synchronized void notifyTimeout() {
 		timeoutExpired = true;
 		toInterrupt.interrupt();

@@ -22,12 +22,21 @@ public class MulticastAddrGenerator {
 		
 	}
 	
+	/**
+	 * Method used to generate an increasing sequence of multicast ip, starting at baseAddr and modulo baseAddr+range
+	 * @return the new multicastIp in the sequence
+	 */
 	public static String getMulticastAddress(){
 		String generatedIP = longToIp(baseAddr + counter);
 			counter = (counter + 1)%(range+1);
 		return generatedIP;
 	}
 	
+	/**
+	 * Method used to convert an ip from string to long.
+	 * @param ipAddress
+	 * @return the long value of the ip
+	 */
 	private long ipToLong(String ipAddress) {
         long result = 0;
         String[] atoms = ipAddress.split("\\.");
@@ -38,7 +47,12 @@ public class MulticastAddrGenerator {
 
         return result & 0xFFFFFFFF;
     }
-
+	
+	/**
+	 * Method used to convert a long value to a string ip, assuming is a valid value
+	 * @param ip
+	 * @return the ip whose value is equal to the long number received as a parameter
+	 */
     private static String longToIp(long ip) {
         StringBuilder sb = new StringBuilder(15);
 

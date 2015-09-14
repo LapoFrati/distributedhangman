@@ -12,10 +12,18 @@ public class Pair implements Serializable {
 		this.str2 = encryptedPassword;
 	}
 	
+	/**
+	 * Getter for the userName field
+	 * @return the userName
+	 */
 	public String getUserName(){
 		return this.str1;
 	}
 	
+	/**
+	 * Getter for the encryptedPassword field
+	 * @return the encryptedPassword
+	 */
 	public String getEncryptedPassword(){
 		return this.str2;
 	}
